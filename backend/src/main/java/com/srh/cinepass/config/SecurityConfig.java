@@ -268,13 +268,19 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // IMPORTANT:
-        // Add your Vercel frontend here
+        // =========================================
+        // FRONTEND ORIGINS
+        // =========================================
+
         configuration.setAllowedOrigins(
                 List.of(
                         "http://localhost:5173",
                         "http://127.0.0.1:5173",
                         "https://srh-cinepass.vercel.app"));
+
+        // =========================================
+        // ALLOWED HTTP METHODS
+        // =========================================
 
         configuration.setAllowedMethods(
                 List.of(
@@ -285,6 +291,10 @@ public class SecurityConfig {
                         "PATCH",
                         "OPTIONS"));
 
+        // =========================================
+        // ALLOWED HEADERS
+        // =========================================
+
         configuration.setAllowedHeaders(
                 List.of(
                         "Authorization",
@@ -292,11 +302,22 @@ public class SecurityConfig {
                         "Accept",
                         "Origin"));
 
-        configuration.setExposedHeaders(
-                List.of(
-                        "Authorization"));
+        // =========================================
+        // EXPOSED HEADERS
+        // =========================================
 
-        configuration.setAllowCredentials(false);
+        configuration.setExposedHeaders(
+                List.of("Authorization"));
+
+        // =========================================
+        // CREDENTIALS
+        // =========================================
+
+        configuration.setAllowCredentials(true);
+
+        // =========================================
+        // REGISTER CORS
+        // =========================================
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
