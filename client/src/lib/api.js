@@ -1,112 +1,60 @@
-// ============================================================
-// API BASE URL
-// ============================================================
-
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:8080";
+  "https://srh-cinepass.onrender.com";
 
-
-// ============================================================
-// API URL HELPER
-// ============================================================
-
-export const apiUrl = (path) => {
-  return `${API_BASE}${path}`;
-};
-
-
-// ============================================================
-// COMMON API FETCH
-// ============================================================
+export const apiUrl = (path) => `${API_BASE}${path}`;
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("cinepassToken");
 
-  const headers = new Headers(
-    options.headers || {}
-  );
+  const headers = new Headers(options.headers || {});
 
-  // ----------------------------------------------------------
   // JSON Content-Type
-  // ----------------------------------------------------------
-
   if (
     !headers.has("Content-Type") &&
     options.body &&
     !(options.body instanceof FormData)
   ) {
-    headers.set(
-      "Content-Type",
-      "application/json"
-    );
+    headers.set("Content-Type", "application/json");
   }
 
-  // ----------------------------------------------------------
   // JWT Authorization
-  // ----------------------------------------------------------
-
   if (token) {
-    headers.set(
-      "Authorization",
-      `Bearer ${token}`
-    );
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
-  // ----------------------------------------------------------
-  // Send Request
-  // ----------------------------------------------------------
-
-  const response = await fetch(
-    apiUrl(path),
-    {
-      ...options,
-      headers,
-    }
-  );
-
-  // ----------------------------------------------------------
-  // Read Response
-  // ----------------------------------------------------------
+  const response = await fetch(apiUrl(path), {
+    ...options,
+    headers,
+  });
 
   const contentType =
     response.headers.get("content-type") || "";
 
-  const data =
-    contentType.includes("application/json")
-      ? await response
-          .json()
-          .catch(() => null)
-      : await response
-          .text()
-          .catch(() => "");
-
-  // ----------------------------------------------------------
-  // Handle Errors
-  // ----------------------------------------------------------
+  const data = contentType.includes("application/json")
+    ? await response.json().catch(() => null)
+    : await response.text().catch(() => "");
 
   if (!response.ok) {
     const message =
       typeof data === "string" && data
         ? data
         : data?.message ||
-          data?.error ||
-          `Request failed (${response.status})`;
+        data?.error ||
+        `Request failed (${response.status})`;
 
     const error = new Error(message);
-
     error.status = response.status;
 
     throw error;
   }
 
   return data;
-};
+}
 
-
-// ============================================================
+// ============================
 // MOVIES
-// ============================================================
+// ============================
 
 export const getMovies = () =>
   apiFetch("/api/movies");
@@ -114,28 +62,22 @@ export const getMovies = () =>
 export const getMovie = (id) =>
   apiFetch(`/api/movies/${id}`);
 
-
-// ============================================================
+// ============================
 // LOCATIONS
-// ============================================================
+// ============================
 
 export const getLocations = () =>
   apiFetch("/api/locations");
 
-
-// ============================================================
+// ============================
 // THEATRES
-// ============================================================
+// ============================
 
 export const getTheatresByLocation = (id) =>
-  apiFetch(
-    `/api/theatres/location/${id}`
-  );
+  apiFetch(`/api/theatres/location/${id}`);
 
 export const getTheatre = (id) =>
-  apiFetch(
-    `/api/theatres/${id}`
-  );
+  apiFetch(`/api/theatres/${id}`);
 
 export const getAllTheatres = () =>
   apiFetch("/api/theatres");
@@ -143,54 +85,26 @@ export const getAllTheatres = () =>
 export const getMyTheatres = () =>
   apiFetch("/api/theatres/my");
 
-
-// ============================================================
-// CREATE THEATRE
-// ============================================================
-
 export const createTheatre = (payload) =>
-  apiFetch(
-    "/api/theatres",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
-  );
+  apiFetch("/api/theatres", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
-
-// ============================================================
-// UPDATE THEATRE
-// ============================================================
-
-export const updateTheatre = (
-  id,
-  payload
-) =>
-  apiFetch(
-    `/api/theatres/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }
-  );
-
-
-// ============================================================
-// DELETE THEATRE
-// ============================================================
+export const updateTheatre = (id, payload) =>
+  apiFetch(`/api/theatres/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 
 export const deleteTheatre = (id) =>
-  apiFetch(
-    `/api/theatres/${id}`,
-    {
-      method: "DELETE",
-    }
-  );
+  apiFetch(`/api/theatres/${id}`, {
+    method: "DELETE",
+  });
 
-
-// ============================================================
+// ============================
 // SHOWS
-// ============================================================
+// ============================
 
 export const getShows = () =>
   apiFetch("/api/shows");
@@ -206,20 +120,33 @@ export const getShowsByTheatreAndDate = (
     `/api/shows/theatre/${theatreId}/date/${date}`
   );
 
+export const createShow = (payload) =>
+  apiFetch("/api/shows", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
-// ============================================================
+export const updateShow = (id, payload) =>
+  apiFetch(`/api/shows/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+export const deleteShow = (id) =>
+  apiFetch(`/api/shows/${id}`, {
+    method: "DELETE",
+  });
+
+// ============================
 // SEATS
-// ============================================================
+// ============================
 
 export const getSeats = (showId) =>
-  apiFetch(
-    `/api/shows/${showId}/seats`
-  );
+  apiFetch(`/api/shows/${showId}/seats`);
 
-
-// ============================================================
+// ============================
 // BOOKINGS
-// ============================================================
+// ============================
 
 export const getMyBookings = () =>
   apiFetch("/api/bookings/me");
@@ -228,87 +155,34 @@ export const getAllBookings = () =>
   apiFetch("/api/bookings");
 
 export const createBooking = (payload) =>
-  apiFetch(
-    "/api/bookings",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
-  );
+  apiFetch("/api/bookings", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
-
-// ============================================================
-// ADMIN - SHOWS
-// ============================================================
-
-export const createShow = (payload) =>
-  apiFetch(
-    "/api/shows",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
-  );
-
-export const updateShow = (
-  id,
-  payload
-) =>
-  apiFetch(
-    `/api/shows/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }
-  );
-
-export const deleteShow = (id) =>
-  apiFetch(
-    `/api/shows/${id}`,
-    {
-      method: "DELETE",
-    }
-  );
-
-
-// ============================================================
+// ============================
 // THEATRE VERIFICATION
-// ============================================================
+// ============================
 
-export const submitTheatreVerification = (
-  data
-) =>
-  apiFetch(
-    "/api/theatre-verification",
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    }
-  );
-
+export const submitTheatreVerification = (data) =>
+  apiFetch("/api/theatre-verification", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 export const getMyTheatreVerification = () =>
-  apiFetch(
-    "/api/theatre-verification/my"
-  );
-
+  apiFetch("/api/theatre-verification/my");
 
 export const getPendingTheatreVerifications = () =>
-  apiFetch(
-    "/api/theatre-verification/pending"
-  );
+  apiFetch("/api/theatre-verification/pending");
 
-
-export const approveTheatreVerification = (
-  id
-) =>
+export const approveTheatreVerification = (id) =>
   apiFetch(
     `/api/theatre-verification/${id}/approve`,
     {
       method: "PUT",
     }
   );
-
 
 export const rejectTheatreVerification = (
   id,
@@ -318,15 +192,12 @@ export const rejectTheatreVerification = (
     `/api/theatre-verification/${id}/reject`,
     {
       method: "PUT",
-      body: JSON.stringify({
-        reason,
-      }),
+      body: JSON.stringify({ reason }),
     }
   );
 
-
-// ============================================================
+// ============================
 // EXPORT API BASE
-// ============================================================
+// ============================
 
 export { API_BASE };
