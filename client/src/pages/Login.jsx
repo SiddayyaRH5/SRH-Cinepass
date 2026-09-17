@@ -19,23 +19,19 @@ import { apiFetch } from "../lib/api";
 
 import { useAuth } from "../context/AuthContext";
 
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { login } = useAuth();
 
-  const [email, setEmail] =
-    React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
 
-  const [password, setPassword] =
-    React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
 
-  const [loading, setLoading] =
-    React.useState(false);
-
-  const [googleLoading, setGoogleLoading] =
-    React.useState(false);
 
   // ============================================================
   // NORMAL LOGIN
@@ -49,16 +45,12 @@ export default function Login() {
     // ----------------------------------------------------------
 
     if (!email.trim()) {
-      toast.error(
-        "Please enter your email"
-      );
+      toast.error("Please enter your email");
       return;
     }
 
     if (!password) {
-      toast.error(
-        "Please enter your password"
-      );
+      toast.error("Please enter your password");
       return;
     }
 
@@ -81,10 +73,7 @@ export default function Login() {
         }
       );
 
-      console.log(
-        "Login response:",
-        response
-      );
+      console.log("Login response:", response);
 
       // --------------------------------------------------------
       // SAVE LOGIN
@@ -112,20 +101,20 @@ export default function Login() {
       navigate(from, {
         replace: true,
       });
+
     } catch (error) {
-      console.error(
-        "Login error:",
-        error
-      );
+      console.error("Login error:", error);
 
       toast.error(
         error?.message ||
           "Invalid email or password"
       );
+
     } finally {
       setLoading(false);
     }
   };
+
 
   // ============================================================
   // GOOGLE LOGIN
@@ -138,17 +127,16 @@ export default function Login() {
       /*
        * Spring Security OAuth2 endpoint.
        *
-       * Backend:
+       * Local backend:
        * http://localhost:8080/oauth2/authorization/google
        *
        * After successful authentication,
-       * backend redirects to:
-       *
-       * http://localhost:5173/oauth2/success?token=JWT
+       * backend redirects to the frontend.
        */
 
       window.location.href =
         "http://localhost:8080/oauth2/authorization/google";
+
     } catch (error) {
       console.error(
         "Google login error:",
@@ -162,6 +150,7 @@ export default function Login() {
       );
     }
   };
+
 
   // ============================================================
   // UI
@@ -196,6 +185,7 @@ export default function Login() {
             </p>
 
           </div>
+
 
           {/* ==================================================
               LOGIN FORM
@@ -236,6 +226,7 @@ export default function Login() {
 
             </div>
 
+
             {/* PASSWORD */}
 
             <div>
@@ -266,11 +257,14 @@ export default function Login() {
 
             </div>
 
+
             {/* LOGIN BUTTON */}
 
             <button
               type="submit"
-              disabled={loading || googleLoading}
+              disabled={
+                loading || googleLoading
+              }
               className="group flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 py-3.5 text-sm font-semibold text-[#061014] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
 
@@ -289,6 +283,7 @@ export default function Login() {
 
           </form>
 
+
           {/* ==================================================
               OR
           ================================================== */}
@@ -305,6 +300,7 @@ export default function Login() {
 
           </div>
 
+
           {/* ==================================================
               GOOGLE BUTTON
           ================================================== */}
@@ -319,13 +315,17 @@ export default function Login() {
           >
 
             {googleLoading ? (
+
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-cyan-300" />
+
             ) : (
+
               <svg
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"
               >
+
                 <path
                   fill="#4285F4"
                   d="M21.35 12.23c0-.79-.07-1.55-.2-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.42Z"
@@ -345,7 +345,9 @@ export default function Login() {
                   fill="#EA4335"
                   d="M12 6.38c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.47 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.7 5.38l3.24 2.53C7.31 8.1 9.46 6.38 12 6.38Z"
                 />
+
               </svg>
+
             )}
 
             <span>
@@ -355,6 +357,7 @@ export default function Login() {
             </span>
 
           </button>
+
 
           {/* ==================================================
               SIGNUP
