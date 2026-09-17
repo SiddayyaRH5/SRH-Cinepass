@@ -1,166 +1,51 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-
-import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../lib/api";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function OAuth2Success() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  const processedRef = React.useRef(false);
+  useEffect(() => {
+    const token = searchParams.get("token");
 
-  React.useEffect(() => {
-    // Prevent the OAuth callback from being processed twice.
-    if (processedRef.current) {
+    console.log("Google OAuth token received:", !!token);
+
+    if (!token) {
+      console.error("Google OAuth failed: token not found");
+      navigate("/login", { replace: true });
       return;
     }
 
-    processedRef.current = true;
+    // Store JWT exactly where api.js expects it
+    localStorage.setItem("cinepassToken", token);
 
-    const completeGoogleLogin = async () => {
-      try {
-        const params = new URLSearchParams(
-          window.location.search
-        );
+    // Optional cleanup of old authentication data
+    localStorage.removeItem("token");
 
-        const token = params.get("token");
+    console.log("Google OAuth token stored successfully");
 
-        /*
-         * If the callback runs again after the first
-         * successful login, the token may already have
-         * been removed from the URL.
-         *
-         * In that case, check whether the user is already
-         * logged in instead of showing an error.
-         */
-        if (!token) {
-          const existingToken =
-            localStorage.getItem("cinepassToken");
-
-          const existingUser =
-            localStorage.getItem("cinepassUser");
-
-          if (existingToken && existingUser) {
-            navigate("/", {
-              replace: true,
-            });
-
-            return;
-          }
-
-          throw new Error(
-            "Google login token was not received"
-          );
-        }
-
-        /*
-         * Save the JWT temporarily.
-         * apiFetch() will automatically add:
-         *
-         * Authorization: Bearer <token>
-         */
-        localStorage.setItem(
-          "cinepassToken",
-          token
-        );
-
-        /*
-         * Ask the backend for the authenticated
-         * user's information.
-         */
-        const user = await apiFetch(
-          "/api/auth/me"
-        );
-
-        /*
-         * Store authentication information
-         * inside AuthContext.
-         */
-        login({
-          token: token,
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        });
-
-        /*
-         * Remove the token from the browser URL.
-         *
-         * Before:
-         * /oauth2/success?token=xxxxx
-         *
-         * After:
-         * /oauth2/success
-         */
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
-
-        toast.success(
-          `Welcome, ${user.name}!`
-        );
-
-        /*
-         * Go to the CinePass home page.
-         */
-        navigate("/", {
-          replace: true,
-        });
-
-      } catch (error) {
-        console.error(
-          "Google login error:",
-          error
-        );
-
-        /*
-         * Only clear authentication if this
-         * was actually a failed login.
-         */
-        localStorage.removeItem(
-          "cinepassToken"
-        );
-
-        localStorage.removeItem(
-          "cinepassUser"
-        );
-
-        toast.error(
-          error.message ||
-            "Google login failed"
-        );
-
-        navigate("/login", {
-          replace: true,
-        });
-      }
-    };
-
-    completeGoogleLogin();
-  }, [login, navigate]);
+    // Give localStorage a moment, then go home
+    navigate("/", { replace: true });
+  }, [navigate, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#040609] text-white">
-
-      <div className="text-center">
-
-        <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-cyan-400" />
-
-        <h2 className="text-xl font-semibold">
-          Completing Google Sign In...
-        </h2>
-
-        <p className="mt-2 text-sm text-white/50">
-          Please wait while we sign you into CinePass.
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#030507",
+        color: "#ffffff",
+        fontFamily: "inherit",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <h2>Signing you in...</h2>
+        <p style={{ opacity: 0.6 }}>
+          Please wait while we complete your Google login.
         </p>
-
       </div>
-
     </div>
   );
 }
