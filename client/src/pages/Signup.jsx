@@ -1,5 +1,10 @@
 ﻿import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+
 import {
   User,
   Building2,
@@ -8,15 +13,17 @@ import {
   ArrowRight,
   Film,
 } from "lucide-react";
+
 import toast from "react-hot-toast";
 
 import { apiFetch } from "../lib/api";
-import { useAuth } from "../context/AuthContext";
 
 export default function Signup() {
-
   const navigate = useNavigate();
-  const { login } = useAuth();
+
+  // ============================================================
+  // FORM STATE
+  // ============================================================
 
   const [role, setRole] =
     React.useState("USER");
@@ -33,17 +40,31 @@ export default function Signup() {
   const [loading, setLoading] =
     React.useState(false);
 
-  const handleSubmit = async (e) => {
+  const [googleLoading, setGoogleLoading] =
+    React.useState(false);
 
+  // ============================================================
+  // NORMAL SIGNUP
+  // ============================================================
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ----------------------------------------------------------
+    // VALIDATION
+    // ----------------------------------------------------------
+
     if (!name.trim()) {
-      toast.error("Please enter your name");
+      toast.error(
+        "Please enter your name"
+      );
       return;
     }
 
     if (!email.trim()) {
-      toast.error("Please enter your email");
+      toast.error(
+        "Please enter your email"
+      );
       return;
     }
 
@@ -55,48 +76,104 @@ export default function Signup() {
     }
 
     try {
-
       setLoading(true);
+
+      // --------------------------------------------------------
+      // SIGNUP API
+      // --------------------------------------------------------
 
       const response = await apiFetch(
         "/api/auth/signup",
         {
           method: "POST",
+
           body: JSON.stringify({
             name: name.trim(),
-            email: email.trim(),
-            password,
-            role,
+            email: email.trim().toLowerCase(),
+            password: password,
+            role: role,
           }),
         }
       );
 
-      /*
-       * Signup response does not contain a JWT.
-       * Redirect to login after successful registration.
-       */
+      console.log(
+        "Signup response:",
+        response
+      );
+
+      // --------------------------------------------------------
+      // SUCCESS
+      // --------------------------------------------------------
+
       toast.success(
         role === "THEATRE_OWNER"
           ? "Theatre owner account created!"
           : "Account created successfully!"
       );
 
-      navigate("/login");
+      // --------------------------------------------------------
+      // REDIRECT TO LOGIN
+      // --------------------------------------------------------
 
+      navigate("/login", {
+        replace: true,
+      });
     } catch (error) {
-
-      console.error(error);
-
-      toast.error(
-        error.message ||
-        "Unable to create account"
+      console.error(
+        "Signup error:",
+        error
       );
 
+      toast.error(
+        error?.message ||
+          "Unable to create account"
+      );
     } finally {
-
       setLoading(false);
     }
   };
+
+  // ============================================================
+  // GOOGLE SIGNUP
+  // ============================================================
+
+  const handleGoogleSignup = () => {
+    try {
+      setGoogleLoading(true);
+
+      /*
+       * Google authentication is handled by Spring Security.
+       *
+       * If the Google email already exists:
+       *     Existing account -> Login
+       *
+       * If the Google email does not exist:
+       *     New account -> Create USER
+       *
+       * Your backend currently assigns:
+       *
+       *     user.setRole("USER");
+       */
+
+      window.location.href =
+        "http://localhost:8080/oauth2/authorization/google";
+    } catch (error) {
+      console.error(
+        "Google signup error:",
+        error
+      );
+
+      setGoogleLoading(false);
+
+      toast.error(
+        "Unable to continue with Google"
+      );
+    }
+  };
+
+  // ============================================================
+  // UI
+  // ============================================================
 
   return (
     <div className="min-h-screen bg-[#040609] px-5 py-10 text-white">
@@ -105,12 +182,16 @@ export default function Signup() {
 
         <div className="w-full">
 
-          {/* BRAND */}
+          {/* ==================================================
+              BRAND
+          ================================================== */}
 
           <div className="mb-8 text-center">
 
             <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-cyan-300/10 text-cyan-300">
+
               <Film size={22} />
+
             </div>
 
             <h1 className="text-3xl font-semibold">
@@ -118,12 +199,15 @@ export default function Signup() {
             </h1>
 
             <p className="mt-2 text-sm text-white/35">
-              Join CinePass and experience movies differently.
+              Join CinePass and experience
+              movies differently.
             </p>
 
           </div>
 
-          {/* ACCOUNT TYPE */}
+          {/* ==================================================
+              ACCOUNT TYPE
+          ================================================== */}
 
           <div className="mb-6">
 
@@ -133,12 +217,18 @@ export default function Signup() {
 
             <div className="grid grid-cols-2 gap-3">
 
-              {/* USER */}
+              {/* =================================================
+                  USER
+              ================================================= */}
 
               <button
                 type="button"
                 onClick={() =>
                   setRole("USER")
+                }
+                disabled={
+                  loading ||
+                  googleLoading
                 }
                 className={`rounded-2xl border p-4 text-left transition-all ${
                   role === "USER"
@@ -154,7 +244,9 @@ export default function Signup() {
                       : "bg-white/[.05] text-white/40"
                   }`}
                 >
+
                   <User size={18} />
+
                 </div>
 
                 <p className="text-sm font-semibold">
@@ -167,12 +259,18 @@ export default function Signup() {
 
               </button>
 
-              {/* OWNER */}
+              {/* =================================================
+                  THEATRE OWNER
+              ================================================= */}
 
               <button
                 type="button"
                 onClick={() =>
                   setRole("THEATRE_OWNER")
+                }
+                disabled={
+                  loading ||
+                  googleLoading
                 }
                 className={`rounded-2xl border p-4 text-left transition-all ${
                   role === "THEATRE_OWNER"
@@ -188,7 +286,9 @@ export default function Signup() {
                       : "bg-white/[.05] text-white/40"
                   }`}
                 >
+
                   <Building2 size={18} />
+
                 </div>
 
                 <p className="text-sm font-semibold">
@@ -205,7 +305,9 @@ export default function Signup() {
 
           </div>
 
-          {/* FORM */}
+          {/* ==================================================
+              NORMAL SIGNUP FORM
+          ================================================== */}
 
           <form
             onSubmit={handleSubmit}
@@ -233,7 +335,12 @@ export default function Signup() {
                     setName(e.target.value)
                   }
                   placeholder="Enter your name"
-                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-cyan-300/35"
+                  autoComplete="name"
+                  disabled={
+                    loading ||
+                    googleLoading
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 transition focus:border-cyan-300/35 focus:bg-white/[.045] disabled:opacity-50"
                 />
 
               </div>
@@ -262,7 +369,12 @@ export default function Signup() {
                     setEmail(e.target.value)
                   }
                   placeholder="you@example.com"
-                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-cyan-300/35"
+                  autoComplete="email"
+                  disabled={
+                    loading ||
+                    googleLoading
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 transition focus:border-cyan-300/35 focus:bg-white/[.045] disabled:opacity-50"
                 />
 
               </div>
@@ -291,7 +403,12 @@ export default function Signup() {
                     setPassword(e.target.value)
                   }
                   placeholder="Minimum 6 characters"
-                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-cyan-300/35"
+                  autoComplete="new-password"
+                  disabled={
+                    loading ||
+                    googleLoading
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 transition focus:border-cyan-300/35 focus:bg-white/[.045] disabled:opacity-50"
                 />
 
               </div>
@@ -314,11 +431,14 @@ export default function Signup() {
 
             </div>
 
-            {/* SUBMIT */}
+            {/* CREATE ACCOUNT */}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={
+                loading ||
+                googleLoading
+              }
               className="group flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 py-3.5 text-sm font-semibold text-[#061014] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
 
@@ -337,7 +457,79 @@ export default function Signup() {
 
           </form>
 
-          {/* LOGIN */}
+          {/* ==================================================
+              OR
+          ================================================== */}
+
+          <div className="my-7 flex items-center gap-4">
+
+            <div className="h-px flex-1 bg-white/10" />
+
+            <span className="text-[10px] uppercase tracking-[.25em] text-white/30">
+              or continue with
+            </span>
+
+            <div className="h-px flex-1 bg-white/10" />
+
+          </div>
+
+          {/* ==================================================
+              GOOGLE SIGNUP
+          ================================================== */}
+
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={
+              loading ||
+              googleLoading
+            }
+            className="group flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[.03] px-4 py-3.5 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[.06] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+
+            {googleLoading ? (
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-cyan-300" />
+            ) : (
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+              >
+
+                <path
+                  fill="#4285F4"
+                  d="M21.35 12.23c0-.79-.07-1.55-.2-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.42Z"
+                />
+
+                <path
+                  fill="#34A853"
+                  d="M12 21.5c2.63 0 4.84-.87 6.45-2.35l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.74 9.74 0 0 0 12 21.5Z"
+                />
+
+                <path
+                  fill="#FBBC05"
+                  d="M6.54 13.59A5.85 5.85 0 0 1 6.23 12c0-.55.1-1.08.31-1.59V7.88H3.3A9.5 9.5 0 0 0 2.25 12c0 1.53.37 2.98 1.05 4.12l3.24-2.53Z"
+                />
+
+                <path
+                  fill="#EA4335"
+                  d="M12 6.38c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.47 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.7 5.38l3.24 2.53C7.31 8.1 9.46 6.38 12 6.38Z"
+                />
+
+              </svg>
+            )}
+
+            <span>
+              {googleLoading
+                ? "Connecting to Google..."
+                : "Continue with Google"}
+            </span>
+
+          </button>
+
+          {/* ==================================================
+              LOGIN
+          ================================================== */}
 
           <p className="mt-7 text-center text-sm text-white/30">
 
@@ -345,7 +537,7 @@ export default function Signup() {
 
             <Link
               to="/login"
-              className="ml-1 text-cyan-300 hover:text-cyan-200"
+              className="ml-1 text-cyan-300 transition hover:text-cyan-200"
             >
               Sign in
             </Link>

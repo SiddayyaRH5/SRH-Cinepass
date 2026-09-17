@@ -1,253 +1,113 @@
-package com.srh.cinepass.config;
+﻿package com.srh.cinepass.config;
 
-import com.srh.cinepass.filter.JwtAuthenticationFilter;
 import com.srh.cinepass.security.GoogleOAuth2SuccessHandler;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-@Configuration(proxyBeanMethods = false)
-@EnableMethodSecurity
+@Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler;
 
     public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter,
             GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler) {
 
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.googleOAuth2SuccessHandler = googleOAuth2SuccessHandler;
     }
+
+    // ============================================================
+    // SECURITY FILTER CHAIN
+    // ============================================================
 
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http) throws Exception {
 
         http
-                // Disable CSRF for REST API
-                .csrf(csrf -> csrf.disable())
 
-                // Enable CORS
+                // ==================================================
+                // CORS
+                // ==================================================
+
                 .cors(cors -> cors.configurationSource(
                         corsConfigurationSource()))
 
-                // Session support for OAuth2
-                .sessionManagement(session -> session.sessionCreationPolicy(
-                        SessionCreationPolicy.IF_REQUIRED))
+                // ==================================================
+                // CSRF
+                // ==================================================
 
-                // Authorization
+                .csrf(csrf -> csrf.disable())
+
+                // ==================================================
+                // AUTHORIZATION
+                // ==================================================
+
                 .authorizeHttpRequests(auth -> auth
 
-                        // =========================================
-                        // AUTHENTICATION
-                        // =========================================
+                        // Authentication
                         .requestMatchers(
                                 "/api/auth/login",
-                                "/api/auth/signup")
+                                "/api/auth/signup",
+                                "/api/auth/me")
                         .permitAll()
 
+                        // Google OAuth
                         .requestMatchers(
                                 "/oauth2/**",
                                 "/login/oauth2/**")
                         .permitAll()
 
+                        // Public APIs
                         .requestMatchers(
-                                "/api/auth/me")
-                        .authenticated()
-
-                        // =========================================
-                        // MOVIES
-                        // =========================================
-
-                        // Anyone can view movies
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/movies/**")
-                        .permitAll()
-
-                        // ADMIN can modify movies
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/movies/**")
-                        .hasRole("ADMIN")
-
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/movies/**")
-                        .hasRole("ADMIN")
-
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/movies/**")
-                        .hasRole("ADMIN")
-
-                        // =========================================
-                        // LOCATIONS
-                        // =========================================
-
-                        // Anyone can view locations
-                        .requestMatchers(
-                                HttpMethod.GET,
+                                "/api/movies/**",
+                                "/api/theatres/**",
+                                "/api/shows/**",
                                 "/api/locations/**")
                         .permitAll()
 
-                        // ADMIN can modify locations
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/locations/**")
-                        .hasRole("ADMIN")
+                        // Other APIs
+                        .anyRequest()
+                        .permitAll())
 
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/locations/**")
-                        .hasRole("ADMIN")
+                // ==================================================
+                // GOOGLE LOGIN
+                // ==================================================
 
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/locations/**")
-                        .hasRole("ADMIN")
-
-                        // =========================================
-                        // THEATRES
-                        // =========================================
-
-                        // Theatre owner can see own theatres
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/theatres/my")
-                        .hasRole("THEATRE_OWNER")
-
-                        // Anyone can view theatres
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/theatres/**")
-                        .permitAll()
-
-                        // ADMIN or THEATRE_OWNER can create theatres
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/theatres/**")
-                        .hasAnyRole("ADMIN", "THEATRE_OWNER")
-
-                        // ADMIN or THEATRE_OWNER can update theatres
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/theatres/**")
-                        .hasAnyRole("ADMIN", "THEATRE_OWNER")
-
-                        // ADMIN or THEATRE_OWNER can delete theatres
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/theatres/**")
-                        .hasAnyRole("ADMIN", "THEATRE_OWNER")
-
-                        // =========================================
-                        // SHOWS
-                        // =========================================
-
-                        // Anyone can view shows and seats
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/shows/**")
-                        .permitAll()
-
-                        // ADMIN can create shows
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/shows/**")
-                        .hasRole("ADMIN")
-
-                        // ADMIN can update shows
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/shows/**")
-                        .hasRole("ADMIN")
-
-                        // ADMIN can delete shows
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/shows/**")
-                        .hasRole("ADMIN")
-
-                        // =========================================
-                        // BOOKINGS
-                        // =========================================
-
-                        // Logged-in users can see their bookings
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/bookings/me")
-                        .authenticated()
-
-                        // ADMIN can see all bookings
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/bookings")
-                        .hasRole("ADMIN")
-
-                        // Logged-in users can use booking APIs
-                        .requestMatchers(
-                                "/api/bookings/**")
-                        .authenticated()
-
-                        // =========================================
-                        // CORS OPTIONS
-                        // =========================================
-
-                        .requestMatchers(
-                                HttpMethod.OPTIONS,
-                                "/**")
-                        .permitAll()
-
-                        // =========================================
-                        // EVERYTHING ELSE
-                        // =========================================
-
-                        .anyRequest().authenticated())
-
-                // =========================================
-                // GOOGLE OAUTH2
-                // =========================================
-
-                .oauth2Login(oauth2 -> oauth2.successHandler(
-                        googleAuthenticationSuccessHandler()))
-
-                // =========================================
-                // JWT FILTER
-                // =========================================
-
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                .oauth2Login(oauth -> oauth.successHandler(
+                        googleOAuth2SuccessHandler));
 
         return http.build();
     }
 
-    // =========================================
-    // GOOGLE OAUTH2 SUCCESS HANDLER
-    // =========================================
+    // ============================================================
+    // PASSWORD ENCODER
+    // ============================================================
 
-    private GoogleOAuth2SuccessHandler googleAuthenticationSuccessHandler() {
+    @Bean
+    public PasswordEncoder passwordEncoder() {
 
-        return googleOAuth2SuccessHandler;
+        return new BCryptPasswordEncoder();
     }
 
-    // =========================================
-    // CORS CONFIGURATION
-    // =========================================
+    // ============================================================
+    // CORS
+    // ============================================================
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -277,7 +137,8 @@ public class SecurityConfig {
                         "Origin"));
 
         configuration.setExposedHeaders(
-                List.of("Authorization"));
+                List.of(
+                        "Authorization"));
 
         configuration.setAllowCredentials(true);
 
