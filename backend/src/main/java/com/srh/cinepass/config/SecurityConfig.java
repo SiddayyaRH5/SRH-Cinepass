@@ -1,4 +1,4 @@
-﻿package com.srh.cinepass.config;
+package com.srh.cinepass.config;
 
 import com.srh.cinepass.security.GoogleOAuth2SuccessHandler;
 
