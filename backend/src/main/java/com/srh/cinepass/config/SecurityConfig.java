@@ -1,4 +1,4 @@
-package com.srh.cinepass.config;
+﻿package com.srh.cinepass.config;
 
 import com.srh.cinepass.security.GoogleOAuth2SuccessHandler;
 
@@ -8,9 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 
 import org.springframework.web.cors.CorsConfiguration;
@@ -28,7 +26,8 @@ public class SecurityConfig {
     public SecurityConfig(
             GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler) {
 
-        this.googleOAuth2SuccessHandler = googleOAuth2SuccessHandler;
+        this.googleOAuth2SuccessHandler =
+                googleOAuth2SuccessHandler;
     }
 
     // ============================================================
@@ -45,8 +44,11 @@ public class SecurityConfig {
                 // CORS
                 // ==================================================
 
-                .cors(cors -> cors.configurationSource(
-                        corsConfigurationSource()))
+                .cors(cors ->
+                        cors.configurationSource(
+                                corsConfigurationSource()
+                        )
+                )
 
                 // ==================================================
                 // CSRF
@@ -60,65 +62,60 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Authentication
+                        // Authentication APIs
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/signup",
-                                "/api/auth/me")
-                        .permitAll()
+                                "/api/auth/me"
+                        ).permitAll()
 
                         // Google OAuth
                         .requestMatchers(
                                 "/oauth2/**",
-                                "/login/oauth2/**")
-                        .permitAll()
+                                "/login/oauth2/**"
+                        ).permitAll()
 
                         // Public APIs
                         .requestMatchers(
                                 "/api/movies/**",
                                 "/api/theatres/**",
-                                "/api/shows/**",
-                                "/api/locations/**")
-                        .permitAll()
+                                "/api/shows/**"
+                        ).permitAll()
 
-                        // Other APIs
-                        .anyRequest()
-                        .permitAll())
+                        // Everything else
+                        .anyRequest().permitAll()
+                )
 
                 // ==================================================
-                // GOOGLE LOGIN
+                // GOOGLE OAUTH2 LOGIN
                 // ==================================================
 
-                .oauth2Login(oauth -> oauth.successHandler(
-                        googleOAuth2SuccessHandler));
+                .oauth2Login(oauth ->
+                        oauth.successHandler(
+                                googleOAuth2SuccessHandler
+                        )
+                );
 
         return http.build();
     }
 
     // ============================================================
-    // PASSWORD ENCODER
-    // ============================================================
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-
-        return new BCryptPasswordEncoder();
-    }
-
-    // ============================================================
-    // CORS
+    // CORS CONFIGURATION
     // ============================================================
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration = new CorsConfiguration();
+        CorsConfiguration configuration =
+                new CorsConfiguration();
 
         configuration.setAllowedOrigins(
                 List.of(
                         "http://localhost:5173",
                         "http://127.0.0.1:5173",
-                        "https://srh-cinepass.vercel.app"));
+                        "https://srh-cinepass.vercel.app"
+                )
+        );
 
         configuration.setAllowedMethods(
                 List.of(
@@ -127,26 +124,32 @@ public class SecurityConfig {
                         "PUT",
                         "DELETE",
                         "PATCH",
-                        "OPTIONS"));
+                        "OPTIONS"
+                )
+        );
 
         configuration.setAllowedHeaders(
                 List.of(
                         "Authorization",
                         "Content-Type",
                         "Accept",
-                        "Origin"));
+                        "Origin"
+                )
+        );
 
         configuration.setExposedHeaders(
-                List.of(
-                        "Authorization"));
+                List.of("Authorization")
+        );
 
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration(
                 "/**",
-                configuration);
+                configuration
+        );
 
         return source;
     }
