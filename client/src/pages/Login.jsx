@@ -157,29 +157,7 @@ export default function Login() {
         </button>
       </form>
 
-      {/* ======================================================
-          GOOGLE LOGIN
-      ====================================================== */}
 
-      <div className="my-6 flex items-center gap-4">
-        <span className="h-px flex-1 bg-white/10" />
-
-        <span className="text-[10px] uppercase tracking-[.25em] text-white/25">
-          Or continue with
-        </span>
-
-        <span className="h-px flex-1 bg-white/10" />
-      </div>
-
-      <button
-        type="button"
-        onClick={continueWithGoogle}
-        className="flex h-13 w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[.04] text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[.08]"
-      >
-        <GoogleIcon />
-
-        Continue with Google
-      </button>
 
       <div className="my-7 flex items-center gap-4">
         <span className="h-px flex-1 bg-white/10" />
