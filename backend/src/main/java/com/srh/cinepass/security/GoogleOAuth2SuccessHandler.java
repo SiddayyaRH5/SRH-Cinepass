@@ -136,6 +136,7 @@ public class GoogleOAuth2SuccessHandler
                         frontendUrl = "http://localhost:5173";
                 }
 
+                // Remove trailing slash
                 frontendUrl = frontendUrl.replaceAll("/$", "");
 
                 // ========================================================
