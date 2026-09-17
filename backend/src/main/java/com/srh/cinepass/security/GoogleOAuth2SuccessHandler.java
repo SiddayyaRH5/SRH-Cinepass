@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -24,6 +25,16 @@ public class GoogleOAuth2SuccessHandler
         private final UserRepository userRepository;
         private final JwtService jwtService;
         private final PasswordEncoder passwordEncoder;
+
+        /*
+         * Read frontend URL from application.properties
+         *
+         * application.properties:
+         *
+         * app.frontend-url=${FRONTEND_URL:http://localhost:5173}
+         */
+        @Value("${app.frontend-url}")
+        private String frontendUrl;
 
         public GoogleOAuth2SuccessHandler(
                         UserRepository userRepository,
@@ -116,10 +127,8 @@ public class GoogleOAuth2SuccessHandler
                                 user.getEmail());
 
                 // ========================================================
-                // FRONTEND URL
+                // CLEAN FRONTEND URL
                 // ========================================================
-
-                String frontendUrl = System.getenv("FRONTEND_URL");
 
                 if (frontendUrl == null ||
                                 frontendUrl.isBlank()) {
@@ -127,13 +136,10 @@ public class GoogleOAuth2SuccessHandler
                         frontendUrl = "http://localhost:5173";
                 }
 
-                // Remove trailing slash
-                frontendUrl = frontendUrl.replaceAll(
-                                "/$",
-                                "");
+                frontendUrl = frontendUrl.replaceAll("/$", "");
 
                 // ========================================================
-                // REDIRECT TO REACT
+                // REDIRECT TO REACT FRONTEND
                 // ========================================================
 
                 String redirectUrl = frontendUrl +
