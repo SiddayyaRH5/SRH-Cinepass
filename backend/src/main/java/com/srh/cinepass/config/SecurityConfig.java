@@ -1,7 +1,5 @@
 package com.srh.cinepass.config;
 
-import com.srh.cinepass.security.GoogleOAuth2SuccessHandler;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,110 +17,76 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler;
+        @Bean
+        public SecurityFilterChain securityFilterChain(
+                        HttpSecurity http) throws Exception {
 
-    public SecurityConfig(
-            GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler) {
+                http
+                                .cors(cors -> cors.configurationSource(
+                                                corsConfigurationSource()))
 
-        this.googleOAuth2SuccessHandler =
-                googleOAuth2SuccessHandler;
-    }
+                                .csrf(csrf -> csrf.disable())
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http) throws Exception {
+                                .authorizeHttpRequests(auth -> auth
 
-        http
-                .cors(cors ->
-                        cors.configurationSource(
-                                corsConfigurationSource()
-                        )
-                )
+                                                // Authentication
+                                                .requestMatchers(
+                                                                "/api/auth/login",
+                                                                "/api/auth/signup",
+                                                                "/api/auth/me")
+                                                .permitAll()
 
-                .csrf(csrf -> csrf.disable())
+                                                // Public APIs
+                                                .requestMatchers(
+                                                                "/api/movies/**",
+                                                                "/api/theatres/**",
+                                                                "/api/shows/**")
+                                                .permitAll()
 
-                .authorizeHttpRequests(auth -> auth
+                                                // Other APIs
+                                                .anyRequest().permitAll());
 
-                        // Authentication
-                        .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/signup",
-                                "/api/auth/me"
-                        ).permitAll()
+                return http.build();
+        }
 
-                        // Google OAuth
-                        .requestMatchers(
-                                "/oauth2/**",
-                                "/login/oauth2/**"
-                        ).permitAll()
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
 
-                        // Public APIs
-                        .requestMatchers(
-                                "/api/movies/**",
-                                "/api/theatres/**",
-                                "/api/shows/**"
-                        ).permitAll()
+                CorsConfiguration configuration = new CorsConfiguration();
 
-                        // Other APIs
-                        .anyRequest().permitAll()
-                )
+                configuration.setAllowedOrigins(
+                                List.of(
+                                                "http://localhost:5173",
+                                                "http://127.0.0.1:5173",
+                                                "https://srh-cinepass.vercel.app"));
 
-                .oauth2Login(oauth ->
-                        oauth.successHandler(
-                                googleOAuth2SuccessHandler
-                        )
-                );
+                configuration.setAllowedMethods(
+                                List.of(
+                                                "GET",
+                                                "POST",
+                                                "PUT",
+                                                "DELETE",
+                                                "PATCH",
+                                                "OPTIONS"));
 
-        return http.build();
-    }
+                configuration.setAllowedHeaders(
+                                List.of(
+                                                "Authorization",
+                                                "Content-Type",
+                                                "Accept",
+                                                "Origin"));
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+                configuration.setExposedHeaders(
+                                List.of("Authorization"));
 
-        CorsConfiguration configuration =
-                new CorsConfiguration();
+                configuration.setAllowCredentials(true);
 
-        configuration.setAllowedOrigins(
-                List.of(
-                        "http://localhost:5173",
-                        "http://127.0.0.1:5173",
-                        "https://srh-cinepass.vercel.app"
-                )
-        );
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-        configuration.setAllowedMethods(
-                List.of(
-                        "GET",
-                        "POST",
-                        "PUT",
-                        "DELETE",
-                        "PATCH",
-                        "OPTIONS"
-                )
-        );
+                source.registerCorsConfiguration(
+                                "/**",
+                                configuration);
 
-        configuration.setAllowedHeaders(
-                List.of(
-                        "Authorization",
-                        "Content-Type",
-                        "Accept",
-                        "Origin"
-                )
-        );
-
-        configuration.setExposedHeaders(
-                List.of("Authorization"));
-
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
-        source.registerCorsConfiguration(
-                "/**",
-                configuration
-        );
-
-        return source;
-    }
+                return source;
+        }
 }
