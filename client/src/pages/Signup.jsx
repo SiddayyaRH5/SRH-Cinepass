@@ -16,7 +16,7 @@ import {
 
 import toast from "react-hot-toast";
 
-import { apiFetch } from "../lib/api";
+import { apiFetch, API_BASE } from "../lib/api";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -118,6 +118,7 @@ export default function Signup() {
       navigate("/login", {
         replace: true,
       });
+
     } catch (error) {
       console.error(
         "Signup error:",
@@ -128,6 +129,7 @@ export default function Signup() {
         error?.message ||
           "Unable to create account"
       );
+
     } finally {
       setLoading(false);
     }
@@ -142,21 +144,38 @@ export default function Signup() {
       setGoogleLoading(true);
 
       /*
-       * Google authentication is handled by Spring Security.
+       * Google authentication is handled
+       * completely by Spring Security.
        *
-       * If the Google email already exists:
-       *     Existing account -> Login
+       * IMPORTANT:
+       * Do NOT use localhost here.
        *
-       * If the Google email does not exist:
-       *     New account -> Create USER
+       * API_BASE comes from:
        *
-       * Your backend currently assigns:
+       * VITE_API_BASE_URL
        *
-       *     user.setRole("USER");
+       * Production:
+       * https://srh-cinepass.onrender.com
+       *
+       * Local:
+       * http://localhost:8080
        */
 
+      const backendUrl =
+        API_BASE ||
+        "http://localhost:8080";
+
+      const googleUrl =
+        `${backendUrl}/oauth2/authorization/google`;
+
+      console.log(
+        "Google OAuth URL:",
+        googleUrl
+      );
+
       window.location.href =
-        "http://localhost:8080/oauth2/authorization/google";
+        googleUrl;
+
     } catch (error) {
       console.error(
         "Google signup error:",
@@ -205,6 +224,7 @@ export default function Signup() {
 
           </div>
 
+
           {/* ==================================================
               ACCOUNT TYPE
           ================================================== */}
@@ -217,9 +237,7 @@ export default function Signup() {
 
             <div className="grid grid-cols-2 gap-3">
 
-              {/* =================================================
-                  USER
-              ================================================= */}
+              {/* USER */}
 
               <button
                 type="button"
@@ -244,9 +262,7 @@ export default function Signup() {
                       : "bg-white/[.05] text-white/40"
                   }`}
                 >
-
                   <User size={18} />
-
                 </div>
 
                 <p className="text-sm font-semibold">
@@ -259,9 +275,8 @@ export default function Signup() {
 
               </button>
 
-              {/* =================================================
-                  THEATRE OWNER
-              ================================================= */}
+
+              {/* THEATRE OWNER */}
 
               <button
                 type="button"
@@ -286,9 +301,7 @@ export default function Signup() {
                       : "bg-white/[.05] text-white/40"
                   }`}
                 >
-
                   <Building2 size={18} />
-
                 </div>
 
                 <p className="text-sm font-semibold">
@@ -304,6 +317,7 @@ export default function Signup() {
             </div>
 
           </div>
+
 
           {/* ==================================================
               NORMAL SIGNUP FORM
@@ -347,6 +361,7 @@ export default function Signup() {
 
             </div>
 
+
             {/* EMAIL */}
 
             <div>
@@ -380,6 +395,7 @@ export default function Signup() {
               </div>
 
             </div>
+
 
             {/* PASSWORD */}
 
@@ -415,6 +431,7 @@ export default function Signup() {
 
             </div>
 
+
             {/* SELECTED ROLE */}
 
             <div className="rounded-xl border border-cyan-300/10 bg-cyan-300/[.035] px-4 py-3">
@@ -424,12 +441,15 @@ export default function Signup() {
               </p>
 
               <p className="mt-1 text-sm font-medium text-cyan-200">
+
                 {role === "USER"
                   ? "Movie User"
                   : "Theatre Owner"}
+
               </p>
 
             </div>
+
 
             {/* CREATE ACCOUNT */}
 
@@ -457,6 +477,7 @@ export default function Signup() {
 
           </form>
 
+
           {/* ==================================================
               OR
           ================================================== */}
@@ -473,6 +494,7 @@ export default function Signup() {
 
           </div>
 
+
           {/* ==================================================
               GOOGLE SIGNUP
           ================================================== */}
@@ -488,8 +510,11 @@ export default function Signup() {
           >
 
             {googleLoading ? (
+
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-cyan-300" />
+
             ) : (
+
               <svg
                 width="20"
                 height="20"
@@ -503,7 +528,7 @@ export default function Signup() {
 
                 <path
                   fill="#34A853"
-                  d="M12 21.5c2.63 0 4.84-.87 6.45-2.35l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.74 9.74 0 0 0 12 21.5Z"
+                  d="M12 21.5c2.63 0 4.84-.87 6.45-2.35l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.74 9.74 0 0 12 21.5Z"
                 />
 
                 <path
@@ -517,6 +542,7 @@ export default function Signup() {
                 />
 
               </svg>
+
             )}
 
             <span>
@@ -526,6 +552,7 @@ export default function Signup() {
             </span>
 
           </button>
+
 
           {/* ==================================================
               LOGIN
