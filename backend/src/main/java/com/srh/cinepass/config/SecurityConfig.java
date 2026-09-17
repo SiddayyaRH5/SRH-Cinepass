@@ -1,4 +1,4 @@
-﻿package com.srh.cinepass.config;
+package com.srh.cinepass.config;
 
 import com.srh.cinepass.security.GoogleOAuth2SuccessHandler;
 
@@ -7,8 +7,6 @@ import org.springframework.context.annotation.Configuration;
 
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 
 import org.springframework.web.cors.CorsConfiguration;
@@ -30,39 +28,22 @@ public class SecurityConfig {
                 googleOAuth2SuccessHandler;
     }
 
-    // ============================================================
-    // SECURITY FILTER CHAIN
-    // ============================================================
-
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http) throws Exception {
 
         http
-
-                // ==================================================
-                // CORS
-                // ==================================================
-
                 .cors(cors ->
                         cors.configurationSource(
                                 corsConfigurationSource()
                         )
                 )
 
-                // ==================================================
-                // CSRF
-                // ==================================================
-
                 .csrf(csrf -> csrf.disable())
-
-                // ==================================================
-                // AUTHORIZATION
-                // ==================================================
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Authentication APIs
+                        // Authentication
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/signup",
@@ -82,13 +63,9 @@ public class SecurityConfig {
                                 "/api/shows/**"
                         ).permitAll()
 
-                        // Everything else
+                        // Other APIs
                         .anyRequest().permitAll()
                 )
-
-                // ==================================================
-                // GOOGLE OAUTH2 LOGIN
-                // ==================================================
 
                 .oauth2Login(oauth ->
                         oauth.successHandler(
@@ -98,10 +75,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-    // ============================================================
-    // CORS CONFIGURATION
-    // ============================================================
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -138,8 +111,7 @@ public class SecurityConfig {
         );
 
         configuration.setExposedHeaders(
-                List.of("Authorization")
-        );
+                List.of("Authorization"));
 
         configuration.setAllowCredentials(true);
 
