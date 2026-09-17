@@ -1,9 +1,12 @@
 package com.srh.cinepass.controller;
 
+import com.srh.cinepass.entity.Seat;
 import com.srh.cinepass.entity.Show;
+import com.srh.cinepass.entity.User;
 import com.srh.cinepass.service.ShowService;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -20,86 +23,182 @@ public class ShowController {
         this.showService = showService;
     }
 
-    // ==========================================
+    // ============================================================
     // GET ALL SHOWS
-    // ==========================================
+    // PUBLIC
+    // ============================================================
 
     @GetMapping
     public List<Show> getAllShows() {
         return showService.getAllShows();
     }
 
-    // ==========================================
+    // ============================================================
     // GET SHOW BY ID
-    // ==========================================
+    // PUBLIC
+    // ============================================================
 
     @GetMapping("/{id}")
     public ResponseEntity<Show> getShowById(
             @PathVariable Long id) {
 
-        return showService.getShowById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(
+                    showService.getShowById(id)
+            );
+
+        } catch (RuntimeException e) {
+
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
     }
 
-    // ==========================================
+    // ============================================================
     // ADD SHOW
-    // ==========================================
+    // ADMIN + APPROVED THEATRE OWNER
+    // ============================================================
 
     @PostMapping
-    public ResponseEntity<Show> addShow(
-            @RequestBody Show show) {
-
-        Show savedShow = showService.addShow(show);
-
-        return ResponseEntity.ok(savedShow);
-    }
-
-    // ==========================================
-    // UPDATE SHOW
-    // ==========================================
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Show> updateShow(
-            @PathVariable Long id,
-            @RequestBody Show showDetails) {
+    public ResponseEntity<?> addShow(
+            @RequestBody Show show,
+            Authentication authentication) {
 
         try {
 
+            User user =
+                    (User) authentication.getPrincipal();
+
+            boolean isAdmin =
+                    "ADMIN".equalsIgnoreCase(
+                            user.getRole()
+                    );
+
+            Show savedShow =
+                    showService.addShow(
+                            show,
+                            user.getId(),
+                            isAdmin
+                    );
+
+            return ResponseEntity.ok(savedShow);
+
+        } catch (RuntimeException e) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(e.getMessage());
+        }
+    }
+
+    // ============================================================
+    // UPDATE SHOW
+    // ADMIN + APPROVED THEATRE OWNER
+    // ============================================================
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateShow(
+            @PathVariable Long id,
+            @RequestBody Show showDetails,
+            Authentication authentication) {
+
+        try {
+
+            User user =
+                    (User) authentication.getPrincipal();
+
+            boolean isAdmin =
+                    "ADMIN".equalsIgnoreCase(
+                            user.getRole()
+                    );
+
+            if (showDetails.getMovie() == null ||
+                    showDetails.getMovie().getId() == null) {
+
+                throw new RuntimeException(
+                        "Movie is required"
+                );
+            }
+
+            Long movieId =
+                    showDetails
+                            .getMovie()
+                            .getId();
+
+            Long theatreId = null;
+
+            if (showDetails.getTheatre() != null &&
+                    showDetails.getTheatre().getId() != null) {
+
+                theatreId =
+                        showDetails
+                                .getTheatre()
+                                .getId();
+            }
+
             Show updatedShow =
-                    showService.updateShow(id, showDetails);
+                    showService.updateShow(
+                            id,
+                            movieId,
+                            theatreId,
+                            showDetails,
+                            user.getId(),
+                            isAdmin
+                    );
 
             return ResponseEntity.ok(updatedShow);
 
         } catch (RuntimeException e) {
 
-            return ResponseEntity.notFound().build();
+            return ResponseEntity
+                    .badRequest()
+                    .body(e.getMessage());
         }
     }
 
-    // ==========================================
+    // ============================================================
     // DELETE SHOW
-    // ==========================================
+    // ADMIN + APPROVED THEATRE OWNER
+    // ============================================================
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteShow(
-            @PathVariable Long id) {
+    public ResponseEntity<?> deleteShow(
+            @PathVariable Long id,
+            Authentication authentication) {
 
         try {
 
-            showService.deleteShow(id);
+            User user =
+                    (User) authentication.getPrincipal();
 
-            return ResponseEntity.noContent().build();
+            boolean isAdmin =
+                    "ADMIN".equalsIgnoreCase(
+                            user.getRole()
+                    );
+
+            showService.deleteShow(
+                    id,
+                    user.getId(),
+                    isAdmin
+            );
+
+            return ResponseEntity
+                    .noContent()
+                    .build();
 
         } catch (RuntimeException e) {
 
-            return ResponseEntity.notFound().build();
+            return ResponseEntity
+                    .badRequest()
+                    .body(e.getMessage());
         }
     }
 
-    // ==========================================
+    // ============================================================
     // GET SHOWS BY MOVIE
-    // ==========================================
+    // PUBLIC
+    // ============================================================
 
     @GetMapping("/movie/{movieId}")
     public List<Show> getShowsByMovie(
@@ -108,20 +207,24 @@ public class ShowController {
         return showService.getShowsByMovie(movieId);
     }
 
-    // ==========================================
+    // ============================================================
     // GET SHOWS BY THEATRE
-    // ==========================================
+    // PUBLIC
+    // ============================================================
 
     @GetMapping("/theatre/{theatreId}")
     public List<Show> getShowsByTheatre(
             @PathVariable Long theatreId) {
 
-        return showService.getShowsByTheatre(theatreId);
+        return showService.getShowsByTheatre(
+                theatreId
+        );
     }
 
-    // ==========================================
+    // ============================================================
     // GET SHOWS BY DATE
-    // ==========================================
+    // PUBLIC
+    // ============================================================
 
     @GetMapping("/date/{date}")
     public List<Show> getShowsByDate(
@@ -130,9 +233,10 @@ public class ShowController {
         return showService.getShowsByDate(date);
     }
 
-    // ==========================================
-    // GET SHOWS BY MOVIE AND DATE
-    // ==========================================
+    // ============================================================
+    // GET SHOWS BY MOVIE + DATE
+    // PUBLIC
+    // ============================================================
 
     @GetMapping("/movie/{movieId}/date/{date}")
     public List<Show> getShowsByMovieAndDate(
@@ -145,9 +249,10 @@ public class ShowController {
         );
     }
 
-    // ==========================================
-    // GET SHOWS BY THEATRE AND DATE
-    // ==========================================
+    // ============================================================
+    // GET SHOWS BY THEATRE + DATE
+    // PUBLIC
+    // ============================================================
 
     @GetMapping("/theatre/{theatreId}/date/{date}")
     public List<Show> getShowsByTheatreAndDate(
@@ -160,12 +265,13 @@ public class ShowController {
         );
     }
 
-    // ==========================================
+    // ============================================================
     // GET SEATS FOR SHOW
-    // ==========================================
+    // PUBLIC
+    // ============================================================
 
     @GetMapping("/{showId}/seats")
-    public List<com.srh.cinepass.entity.Seat> getSeatsByShow(
+    public List<Seat> getSeatsByShow(
             @PathVariable Long showId) {
 
         return showService.getSeatsByShow(showId);

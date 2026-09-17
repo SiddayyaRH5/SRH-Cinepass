@@ -1,13 +1,361 @@
-import React from "react";
-import { Link,useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, Lock, Mail, Ticket, UserRound } from "lucide-react";
+﻿import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  User,
+  Building2,
+  Mail,
+  Lock,
+  ArrowRight,
+  Film,
+} from "lucide-react";
 import toast from "react-hot-toast";
-import { assets } from "../assets/assets";
-import { apiFetch } from "../lib/api";
 
-export default function Signup(){
- const navigate=useNavigate();const [name,setName]=React.useState("");const [email,setEmail]=React.useState("");const [password,setPassword]=React.useState("");const [show,setShow]=React.useState(false);const [busy,setBusy]=React.useState(false);
- const submit=async(e)=>{e.preventDefault();if(name.trim().length<2)return toast.error("Enter your full name");if(password.length<6)return toast.error("Password must be at least 6 characters");try{setBusy(true);await apiFetch("/api/auth/signup",{method:"POST",body:JSON.stringify({name:name.trim(),email:email.trim(),password})});toast.success("Account created. Welcome to CinePass!");navigate("/login")}catch(err){toast.error(err.message||"Unable to create account")}finally{setBusy(false)}};
- return <main className="relative min-h-screen overflow-hidden bg-[#040609]"><img src="/backgroundImage.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-30"/><div className="absolute inset-0 bg-gradient-to-r from-[#040609] via-[#040609]/88 to-[#040609]/55"/><div className="absolute inset-0 bg-gradient-to-t from-[#040609] via-transparent to-[#040609]/70"/><div className="cine-noise absolute inset-0"/><button onClick={()=>navigate("/")} className="absolute left-5 top-5 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2.5 text-xs text-white/60 backdrop-blur-md hover:text-white"><ArrowLeft size={15}/>Back to CinePass</button><div className="relative z-10 flex min-h-screen items-center justify-center px-5 py-24"><div className="grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1fr_500px]"><div className="hidden lg:block"><img src={assets.logo} alt="SRH CinePass" className="h-14 w-auto"/><p className="mt-9 text-xs font-semibold uppercase tracking-[.3em] text-cyan-300">Your cinema passport</p><h2 className="mt-4 text-5xl font-semibold leading-tight">Find the seat.<br/><span className="text-white/45">Own the moment.</span></h2><p className="mt-5 max-w-md text-sm leading-7 text-white/45">Create your CinePass account and unlock a faster, smarter way to book the big screen.</p></div><div className="w-full max-w-[500px] justify-self-center animate-cine-scale"><div className="mb-5 flex justify-center lg:hidden"><img src={assets.logo} alt="SRH CinePass" className="h-11 w-auto"/></div><div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0c1017]/85 p-7 shadow-2xl backdrop-blur-2xl sm:p-9"><div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300 to-transparent"/><p className="text-xs font-semibold uppercase tracking-[.25em] text-cyan-300">Join the experience</p><h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Create your CinePass.</h1><p className="mt-3 text-sm leading-6 text-white/40">One account for movies, theatres, seats and tickets.</p><form onSubmit={submit} className="mt-8 space-y-5"><Field icon={UserRound} label="Full name"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" autoComplete="name" required/></Field><Field icon={Mail} label="Email address"><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required/></Field><Field icon={Lock} label="Password"><div className="relative"><input type={show?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Create a password" autoComplete="new-password" required/><button type="button" onClick={()=>setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/35 hover:text-cyan-300">{show?<EyeOff size={17}/>:<Eye size={17}/>}</button></div><span className="mt-2 block text-[11px] text-white/25">Use at least 6 characters.</span></Field><button disabled={busy} className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 hover:shadow-[0_0_35px_rgba(18,207,232,.18)] disabled:opacity-40">{busy?<span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"/>:<Ticket size={17}/>} {busy?"Creating account...":"Create account"}</button></form><div className="mt-7 flex items-center gap-3 text-xs text-white/30"><CheckCircle2 size={15} className="text-cyan-300"/>Your password is securely protected by the backend.</div><p className="mt-6 text-center text-sm text-white/40">Already have an account? <Link to="/login" className="font-medium text-cyan-300 hover:text-cyan-200">Sign in</Link></p></div></div></div></div></main>
+import { apiFetch } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+
+export default function Signup() {
+
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const [role, setRole] =
+    React.useState("USER");
+
+  const [name, setName] =
+    React.useState("");
+
+  const [email, setEmail] =
+    React.useState("");
+
+  const [password, setPassword] =
+    React.useState("");
+
+  const [loading, setLoading] =
+    React.useState(false);
+
+  const handleSubmit = async (e) => {
+
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+
+    if (!email.trim()) {
+      toast.error("Please enter your email");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error(
+        "Password must contain at least 6 characters"
+      );
+      return;
+    }
+
+    try {
+
+      setLoading(true);
+
+      const response = await apiFetch(
+        "/api/auth/signup",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            role,
+          }),
+        }
+      );
+
+      /*
+       * Signup response does not contain a JWT.
+       * Redirect to login after successful registration.
+       */
+      toast.success(
+        role === "THEATRE_OWNER"
+          ? "Theatre owner account created!"
+          : "Account created successfully!"
+      );
+
+      navigate("/login");
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast.error(
+        error.message ||
+        "Unable to create account"
+      );
+
+    } finally {
+
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#040609] px-5 py-10 text-white">
+
+      <div className="mx-auto flex min-h-[90vh] max-w-md items-center">
+
+        <div className="w-full">
+
+          {/* BRAND */}
+
+          <div className="mb-8 text-center">
+
+            <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-cyan-300/10 text-cyan-300">
+              <Film size={22} />
+            </div>
+
+            <h1 className="text-3xl font-semibold">
+              Create your account
+            </h1>
+
+            <p className="mt-2 text-sm text-white/35">
+              Join CinePass and experience movies differently.
+            </p>
+
+          </div>
+
+          {/* ACCOUNT TYPE */}
+
+          <div className="mb-6">
+
+            <p className="mb-3 text-xs font-medium uppercase tracking-[.16em] text-white/35">
+              I want to join as
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+
+              {/* USER */}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setRole("USER")
+                }
+                className={`rounded-2xl border p-4 text-left transition-all ${
+                  role === "USER"
+                    ? "border-cyan-300/40 bg-cyan-300/10 shadow-[0_0_30px_rgba(34,211,238,.06)]"
+                    : "border-white/10 bg-white/[.025] hover:border-white/20 hover:bg-white/[.04]"
+                }`}
+              >
+
+                <div
+                  className={`mb-3 grid h-10 w-10 place-items-center rounded-xl ${
+                    role === "USER"
+                      ? "bg-cyan-300/15 text-cyan-300"
+                      : "bg-white/[.05] text-white/40"
+                  }`}
+                >
+                  <User size={18} />
+                </div>
+
+                <p className="text-sm font-semibold">
+                  Movie User
+                </p>
+
+                <p className="mt-1 text-[11px] leading-4 text-white/30">
+                  Book tickets and manage bookings
+                </p>
+
+              </button>
+
+              {/* OWNER */}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setRole("THEATRE_OWNER")
+                }
+                className={`rounded-2xl border p-4 text-left transition-all ${
+                  role === "THEATRE_OWNER"
+                    ? "border-cyan-300/40 bg-cyan-300/10 shadow-[0_0_30px_rgba(34,211,238,.06)]"
+                    : "border-white/10 bg-white/[.025] hover:border-white/20 hover:bg-white/[.04]"
+                }`}
+              >
+
+                <div
+                  className={`mb-3 grid h-10 w-10 place-items-center rounded-xl ${
+                    role === "THEATRE_OWNER"
+                      ? "bg-cyan-300/15 text-cyan-300"
+                      : "bg-white/[.05] text-white/40"
+                  }`}
+                >
+                  <Building2 size={18} />
+                </div>
+
+                <p className="text-sm font-semibold">
+                  Theatre Owner
+                </p>
+
+                <p className="mt-1 text-[11px] leading-4 text-white/30">
+                  Manage theatres, shows and business
+                </p>
+
+              </button>
+
+            </div>
+
+          </div>
+
+          {/* FORM */}
+
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
+
+            {/* NAME */}
+
+            <div>
+
+              <label className="mb-2 block text-xs font-medium text-white/40">
+                Full Name
+              </label>
+
+              <div className="relative">
+
+                <User
+                  size={17}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25"
+                />
+
+                <input
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value)
+                  }
+                  placeholder="Enter your name"
+                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-cyan-300/35"
+                />
+
+              </div>
+
+            </div>
+
+            {/* EMAIL */}
+
+            <div>
+
+              <label className="mb-2 block text-xs font-medium text-white/40">
+                Email
+              </label>
+
+              <div className="relative">
+
+                <Mail
+                  size={17}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25"
+                />
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) =>
+                    setEmail(e.target.value)
+                  }
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-cyan-300/35"
+                />
+
+              </div>
+
+            </div>
+
+            {/* PASSWORD */}
+
+            <div>
+
+              <label className="mb-2 block text-xs font-medium text-white/40">
+                Password
+              </label>
+
+              <div className="relative">
+
+                <Lock
+                  size={17}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25"
+                />
+
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
+                  placeholder="Minimum 6 characters"
+                  className="w-full rounded-xl border border-white/10 bg-white/[.03] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-cyan-300/35"
+                />
+
+              </div>
+
+            </div>
+
+            {/* SELECTED ROLE */}
+
+            <div className="rounded-xl border border-cyan-300/10 bg-cyan-300/[.035] px-4 py-3">
+
+              <p className="text-[10px] uppercase tracking-[.16em] text-white/25">
+                Selected account
+              </p>
+
+              <p className="mt-1 text-sm font-medium text-cyan-200">
+                {role === "USER"
+                  ? "Movie User"
+                  : "Theatre Owner"}
+              </p>
+
+            </div>
+
+            {/* SUBMIT */}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 py-3.5 text-sm font-semibold text-[#061014] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+
+              {loading
+                ? "Creating account..."
+                : "Create Account"}
+
+              {!loading && (
+                <ArrowRight
+                  size={17}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              )}
+
+            </button>
+
+          </form>
+
+          {/* LOGIN */}
+
+          <p className="mt-7 text-center text-sm text-white/30">
+
+            Already have an account?
+
+            <Link
+              to="/login"
+              className="ml-1 text-cyan-300 hover:text-cyan-200"
+            >
+              Sign in
+            </Link>
+
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
 }
-function Field({icon:Icon,label,children}){return <label className="block"><span className="mb-2 flex items-center gap-2 text-xs text-white/50"><Icon size={14} className="text-cyan-300"/>{label}</span><div className="[&_input]:h-13 [&_input]:w-full [&_input]:rounded-xl [&_input]:border [&_input]:border-white/10 [&_input]:bg-white/[.04] [&_input]:px-4 [&_input]:text-sm [&_input]:text-white [&_input]:outline-none [&_input]:placeholder:text-white/20 [&_input]:focus:border-cyan-300/40 [&_input]:focus:bg-white/[.06]">{children}</div></label>}

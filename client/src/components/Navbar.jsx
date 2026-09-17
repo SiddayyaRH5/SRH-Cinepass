@@ -421,6 +421,28 @@ export default function Navbar() {
                     My Bookings
                   </button>
 
+                  {user?.role === "THEATRE_OWNER" && (
+  <button
+    type="button"
+    onClick={() => navigate("/theatre-verification")}
+    className="
+      flex
+      w-full
+      items-center
+      gap-3
+      px-4
+      py-3.5
+      text-sm
+      text-white/75
+      hover:bg-white/[.06]
+      hover:text-white
+    "
+  >
+    <Building2 size={17} />
+    Theatre Verification
+  </button>
+)}
+
                   {user?.role === "ADMIN" && (
                     <button
                       type="button"

@@ -7,6 +7,8 @@ import com.srh.cinepass.entity.User;
 import com.srh.cinepass.service.AuthService;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,9 +22,9 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // =========================
-    // SIGNUP
-    // =========================
+    // ============================
+    // NORMAL SIGNUP
+    // ============================
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(
@@ -32,9 +34,18 @@ public class AuthController {
 
             User user = authService.signup(request);
 
-            return ResponseEntity.ok(user);
+            // Do NOT return password/hash to frontend
+            return ResponseEntity.ok(
+                    new LoginResponse(
+                            null,
+                            user.getId(),
+                            user.getName(),
+                            user.getEmail(),
+                            user.getRole()
+                    )
+            );
 
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
 
             return ResponseEntity
                     .badRequest()
@@ -42,9 +53,9 @@ public class AuthController {
         }
     }
 
-    // =========================
-    // LOGIN
-    // =========================
+    // ============================
+    // NORMAL LOGIN
+    // ============================
 
     @PostMapping("/login")
     public ResponseEntity<?> login(
@@ -52,15 +63,46 @@ public class AuthController {
 
         try {
 
-            LoginResponse response = authService.login(request);
+            LoginResponse response =
+                    authService.login(request);
 
             return ResponseEntity.ok(response);
 
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
 
             return ResponseEntity
                     .badRequest()
                     .body(e.getMessage());
         }
+    }
+
+    // ============================
+    // CURRENT LOGGED-IN USER
+    // ============================
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(
+            Authentication authentication) {
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            return ResponseEntity
+                    .status(401)
+                    .body("User is not authenticated");
+        }
+
+        User user =
+                (User) authentication.getPrincipal();
+
+        return ResponseEntity.ok(
+                new LoginResponse(
+                        null,
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getRole()
+                )
+        );
     }
 }

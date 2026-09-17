@@ -6,121 +6,121 @@ import com.srh.cinepass.dto.SignupRequest;
 import com.srh.cinepass.entity.User;
 import com.srh.cinepass.repository.UserRepository;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthService(
             UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
             JwtService jwtService) {
-
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
-
-    // =========================
-    // SIGNUP
-    // =========================
 
     public User signup(SignupRequest request) {
 
         if (request.getName() == null ||
-                request.getName().isBlank()) {
-
-            throw new RuntimeException(
-                    "Name is required");
+            request.getName().isBlank()) {
+            throw new RuntimeException("Name is required");
         }
 
         if (request.getEmail() == null ||
-                request.getEmail().isBlank()) {
-
-            throw new RuntimeException(
-                    "Email is required");
+            request.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
         }
 
         if (request.getPassword() == null ||
-                request.getPassword().isBlank()) {
-
+            request.getPassword().length() < 6) {
             throw new RuntimeException(
-                    "Password is required");
+                "Password must contain at least 6 characters"
+            );
         }
 
-        String email = request.getEmail().trim().toLowerCase();
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase();
 
         if (userRepository.existsByEmail(email)) {
-
             throw new RuntimeException(
-                    "Email is already registered");
+                "An account with this email already exists"
+            );
         }
+
+        /*
+         * Public signup can create only USER
+         * or THEATRE_OWNER.
+         * ADMIN cannot be created from signup.
+         */
+        String role =
+            "THEATRE_OWNER".equalsIgnoreCase(request.getRole())
+                ? "THEATRE_OWNER"
+                : "USER";
 
         User user = new User();
 
         user.setName(request.getName().trim());
-
         user.setEmail(email);
 
         user.setPassword(
-                passwordEncoder.encode(
-                        request.getPassword()));
+            passwordEncoder.encode(
+                request.getPassword()
+            )
+        );
 
-        user.setRole("USER");
+        user.setRole(role);
 
         return userRepository.save(user);
     }
 
-    // =========================
-    // LOGIN
-    // =========================
-
     public LoginResponse login(LoginRequest request) {
 
         if (request.getEmail() == null ||
-                request.getEmail().isBlank()) {
-
+            request.getPassword() == null) {
             throw new RuntimeException(
-                    "Email is required");
+                "Email and password are required"
+            );
         }
 
-        if (request.getPassword() == null ||
-                request.getPassword().isBlank()) {
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase();
 
-            throw new RuntimeException(
-                    "Password is required");
-        }
+        User user = userRepository
+                .findByEmail(email)
+                .orElseThrow(() ->
+                    new RuntimeException(
+                        "Invalid email or password"
+                    )
+                );
 
-        String email = request.getEmail().trim().toLowerCase();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException(
-                        "Invalid email or password"));
-
-        boolean passwordMatches = passwordEncoder.matches(
+        if (!passwordEncoder.matches(
                 request.getPassword(),
-                user.getPassword());
-
-        if (!passwordMatches) {
+                user.getPassword())) {
 
             throw new RuntimeException(
-                    "Invalid email or password");
+                "Invalid email or password"
+            );
         }
 
-        // Generate JWT token
-        String token = jwtService.generateToken(
-                user.getEmail());
+        String token =
+            jwtService.generateToken(
+                user.getEmail()
+            );
 
-        // Return token + safe user information
         return new LoginResponse(
-                token,
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole());
+            token,
+            user.getId(),
+            user.getName(),
+            user.getEmail(),
+            user.getRole()
+        );
     }
 }
