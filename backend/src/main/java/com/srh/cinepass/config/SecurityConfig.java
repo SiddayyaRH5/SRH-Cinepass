@@ -1,4 +1,4 @@
-﻿package com.srh.cinepass.config;
+package com.srh.cinepass.config;
 
 import com.srh.cinepass.filter.JwtAuthenticationFilter;
 import com.srh.cinepass.security.GoogleOAuth2SuccessHandler;
@@ -11,7 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -38,368 +37,255 @@ public class SecurityConfig {
             HttpSecurity http) throws Exception {
 
         http
-            // =====================================================
-            // CSRF
-            // =====================================================
-            .csrf(csrf -> csrf.disable())
+                // Disable CSRF for REST API
+                .csrf(csrf -> csrf.disable())
 
-            // =====================================================
-            // CORS
-            // =====================================================
-            .cors(cors ->
-                cors.configurationSource(corsConfigurationSource())
-            )
+                // Enable CORS
+                .cors(cors -> cors.configurationSource(
+                        corsConfigurationSource()))
 
-            // =====================================================
-            // SESSION
-            // =====================================================
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(
-                    SessionCreationPolicy.IF_REQUIRED
-                )
-            )
+                // Session support for OAuth2
+                .sessionManagement(session -> session.sessionCreationPolicy(
+                        SessionCreationPolicy.IF_REQUIRED))
 
-            // =====================================================
-            // AUTHORIZATION
-            // =====================================================
-            .authorizeHttpRequests(auth -> {
+                // Authorization
+                .authorizeHttpRequests(auth -> auth
 
-                // =================================================
-                // AUTHENTICATION
-                // =================================================
+                        // =========================================
+                        // AUTHENTICATION
+                        // =========================================
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/signup")
+                        .permitAll()
 
-                auth.requestMatchers(
-                    "/api/auth/login",
-                    "/api/auth/signup"
-                ).permitAll();
+                        .requestMatchers(
+                                "/oauth2/**",
+                                "/login/oauth2/**")
+                        .permitAll()
 
-                auth.requestMatchers(
-                    "/oauth2/**",
-                    "/login/oauth2/**"
-                ).permitAll();
+                        .requestMatchers(
+                                "/api/auth/me")
+                        .authenticated()
 
-                auth.requestMatchers(
-                    "/api/auth/me"
-                ).authenticated();
+                        // =========================================
+                        // MOVIES
+                        // =========================================
 
+                        // Anyone can view movies
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/movies/**")
+                        .permitAll()
 
-                // =================================================
-                // MOVIES
-                // =================================================
+                        // ADMIN can modify movies
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/movies/**")
+                        .hasRole("ADMIN")
 
-                // Anyone can view movies
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/movies/**"
-                ).permitAll();
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/movies/**")
+                        .hasRole("ADMIN")
 
-                // Admin can create movies
-                auth.requestMatchers(
-                    HttpMethod.POST,
-                    "/api/movies/**"
-                ).hasRole("ADMIN");
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/movies/**")
+                        .hasRole("ADMIN")
 
-                // Admin can update movies
-                auth.requestMatchers(
-                    HttpMethod.PUT,
-                    "/api/movies/**"
-                ).hasRole("ADMIN");
+                        // =========================================
+                        // LOCATIONS
+                        // =========================================
 
-                // Admin can delete movies
-                auth.requestMatchers(
-                    HttpMethod.DELETE,
-                    "/api/movies/**"
-                ).hasRole("ADMIN");
+                        // Anyone can view locations
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/locations/**")
+                        .permitAll()
 
+                        // ADMIN can modify locations
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/locations/**")
+                        .hasRole("ADMIN")
 
-                // =================================================
-                // LOCATIONS
-                // =================================================
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/locations/**")
+                        .hasRole("ADMIN")
 
-                // Anyone can view locations
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/locations/**"
-                ).permitAll();
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/locations/**")
+                        .hasRole("ADMIN")
 
-                // Admin can create locations
-                auth.requestMatchers(
-                    HttpMethod.POST,
-                    "/api/locations/**"
-                ).hasRole("ADMIN");
+                        // =========================================
+                        // THEATRES
+                        // =========================================
 
-                // Admin can update locations
-                auth.requestMatchers(
-                    HttpMethod.PUT,
-                    "/api/locations/**"
-                ).hasRole("ADMIN");
+                        // Theatre owner can see own theatres
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/theatres/my")
+                        .hasRole("THEATRE_OWNER")
 
-                // Admin can delete locations
-                auth.requestMatchers(
-                    HttpMethod.DELETE,
-                    "/api/locations/**"
-                ).hasRole("ADMIN");
+                        // Anyone can view theatres
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/theatres/**")
+                        .permitAll()
 
+                        // ADMIN or THEATRE_OWNER can create theatres
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/theatres/**")
+                        .hasAnyRole("ADMIN", "THEATRE_OWNER")
 
-                // =================================================
-                // THEATRES
-                // =================================================
+                        // ADMIN or THEATRE_OWNER can update theatres
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/theatres/**")
+                        .hasAnyRole("ADMIN", "THEATRE_OWNER")
 
-                // Theatre owner can view own theatres
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/theatres/my"
-                ).hasRole("THEATRE_OWNER");
+                        // ADMIN or THEATRE_OWNER can delete theatres
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/theatres/**")
+                        .hasAnyRole("ADMIN", "THEATRE_OWNER")
 
-                // Anyone can view theatres
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/theatres/**"
-                ).permitAll();
+                        // =========================================
+                        // SHOWS
+                        // =========================================
 
-                // Admin or theatre owner can create theatres
-                auth.requestMatchers(
-                    HttpMethod.POST,
-                    "/api/theatres/**"
-                ).hasAnyRole(
-                    "ADMIN",
-                    "THEATRE_OWNER"
-                );
+                        // Anyone can view shows and seats
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/shows/**")
+                        .permitAll()
 
-                // Admin or theatre owner can update theatres
-                auth.requestMatchers(
-                    HttpMethod.PUT,
-                    "/api/theatres/**"
-                ).hasAnyRole(
-                    "ADMIN",
-                    "THEATRE_OWNER"
-                );
+                        // ADMIN can create shows
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/shows/**")
+                        .hasRole("ADMIN")
 
-                // Admin or theatre owner can delete theatres
-                auth.requestMatchers(
-                    HttpMethod.DELETE,
-                    "/api/theatres/**"
-                ).hasAnyRole(
-                    "ADMIN",
-                    "THEATRE_OWNER"
-                );
+                        // ADMIN can update shows
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/shows/**")
+                        .hasRole("ADMIN")
 
+                        // ADMIN can delete shows
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/shows/**")
+                        .hasRole("ADMIN")
 
-                // =================================================
-                // SHOWS
-                // =================================================
+                        // =========================================
+                        // BOOKINGS
+                        // =========================================
 
-                // Anyone can view shows and seats
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/shows/**"
-                ).permitAll();
+                        // Logged-in users can see their bookings
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/bookings/me")
+                        .authenticated()
 
-                // Admin can create shows
-                auth.requestMatchers(
-                    HttpMethod.POST,
-                    "/api/shows/**"
-                ).hasRole("ADMIN");
+                        // ADMIN can see all bookings
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/bookings")
+                        .hasRole("ADMIN")
 
-                // Admin can update shows
-                auth.requestMatchers(
-                    HttpMethod.PUT,
-                    "/api/shows/**"
-                ).hasRole("ADMIN");
+                        // Logged-in users can use booking APIs
+                        .requestMatchers(
+                                "/api/bookings/**")
+                        .authenticated()
 
-                // Admin can delete shows
-                auth.requestMatchers(
-                    HttpMethod.DELETE,
-                    "/api/shows/**"
-                ).hasRole("ADMIN");
+                        // =========================================
+                        // CORS OPTIONS
+                        // =========================================
 
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**")
+                        .permitAll()
 
-                // =================================================
-                // BOOKINGS
-                // =================================================
+                        // =========================================
+                        // EVERYTHING ELSE
+                        // =========================================
 
-                // Logged-in users can see their bookings
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/bookings/me"
-                ).authenticated();
+                        .anyRequest().authenticated())
 
-                // Only admin can see all bookings
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/bookings"
-                ).hasRole("ADMIN");
+                // =========================================
+                // GOOGLE OAUTH2
+                // =========================================
 
-                // Logged-in users can manage bookings
-                auth.requestMatchers(
-                    "/api/bookings/**"
-                ).authenticated();
+                .oauth2Login(oauth2 -> oauth2.successHandler(
+                        googleAuthenticationSuccessHandler()))
 
+                // =========================================
+                // JWT FILTER
+                // =========================================
 
-                // =================================================
-                // THEATRE VERIFICATION
-                // =================================================
-
-                // Theatre owner submits verification
-                auth.requestMatchers(
-                    HttpMethod.POST,
-                    "/api/theatre-verification"
-                ).hasRole("THEATRE_OWNER");
-
-                // Theatre owner sees own verification
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/theatre-verification/my"
-                ).hasRole("THEATRE_OWNER");
-
-                // Admin sees pending verifications
-                auth.requestMatchers(
-                    HttpMethod.GET,
-                    "/api/theatre-verification/pending"
-                ).hasRole("ADMIN");
-
-                // Admin approves verification
-                auth.requestMatchers(
-                    HttpMethod.PUT,
-                    "/api/theatre-verification/*/approve"
-                ).hasRole("ADMIN");
-
-                // Admin rejects verification
-                auth.requestMatchers(
-                    HttpMethod.PUT,
-                    "/api/theatre-verification/*/reject"
-                ).hasRole("ADMIN");
-
-
-                // =================================================
-                // CORS PREFLIGHT
-                // =================================================
-
-                auth.requestMatchers(
-                    HttpMethod.OPTIONS,
-                    "/**"
-                ).permitAll();
-
-
-                // =================================================
-                // EVERYTHING ELSE
-                // =================================================
-
-                auth.anyRequest().authenticated();
-            })
-
-            // =====================================================
-            // GOOGLE OAUTH2
-            // =====================================================
-            .oauth2Login(oauth2 ->
-                oauth2.successHandler(
-                    googleAuthenticationSuccessHandler()
-                )
-            )
-
-            // =====================================================
-            // JWT FILTER
-            // =====================================================
-            .addFilterBefore(
-                jwtAuthenticationFilter,
-                UsernamePasswordAuthenticationFilter.class
-            );
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
-    // =============================================================
+    // =========================================
     // GOOGLE OAUTH2 SUCCESS HANDLER
-    // =============================================================
+    // =========================================
 
-    private GoogleOAuth2SuccessHandler
-    googleAuthenticationSuccessHandler() {
+    private GoogleOAuth2SuccessHandler googleAuthenticationSuccessHandler() {
 
         return googleOAuth2SuccessHandler;
     }
 
-
-    // =============================================================
+    // =========================================
     // CORS CONFIGURATION
-    // =============================================================
+    // =========================================
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration =
-            new CorsConfiguration();
-
-        // ---------------------------------------------------------
-        // FRONTEND URLs
-        // ---------------------------------------------------------
+        CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-            List.of(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "https://srh-cinepass.vercel.app"
-            )
-        );
-
-
-        // ---------------------------------------------------------
-        // ALLOWED METHODS
-        // ---------------------------------------------------------
+                List.of(
+                        "http://localhost:5173",
+                        "http://127.0.0.1:5173",
+                        "https://srh-cinepass.vercel.app"));
 
         configuration.setAllowedMethods(
-            List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "DELETE",
-                "PATCH",
-                "OPTIONS"
-            )
-        );
-
-
-        // ---------------------------------------------------------
-        // ALLOWED HEADERS
-        // ---------------------------------------------------------
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "PATCH",
+                        "OPTIONS"));
 
         configuration.setAllowedHeaders(
-            List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin"
-            )
-        );
-
-
-        // ---------------------------------------------------------
-        // EXPOSED HEADERS
-        // ---------------------------------------------------------
+                List.of(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept",
+                        "Origin"));
 
         configuration.setExposedHeaders(
-            List.of("Authorization")
-        );
-
-
-        // ---------------------------------------------------------
-        // ALLOW CREDENTIALS
-        // ---------------------------------------------------------
+                List.of("Authorization"));
 
         configuration.setAllowCredentials(true);
 
-
-        // ---------------------------------------------------------
-        // REGISTER CORS
-        // ---------------------------------------------------------
-
-        UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration(
-            "/**",
-            configuration
-        );
+                "/**",
+                configuration);
 
         return source;
     }
