@@ -1,3 +1,4 @@
+
 package com.srh.cinepass.entity;
 
 import jakarta.persistence.Entity;
@@ -14,36 +15,30 @@ public class Movie {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long tmdbId;
+
     private String title;
-
     private String description;
-
     private String posterUrl;
-
     private String backdropUrl;
-
     private LocalDate releaseDate;
-
     private Double rating;
-
     private Integer duration;
-
     private String language;
-
     private String genre;
 
     public Movie() {
     }
 
     public Movie(String title,
-                 String description,
-                 String posterUrl,
-                 String backdropUrl,
-                 LocalDate releaseDate,
-                 Double rating,
-                 Integer duration,
-                 String language,
-                 String genre) {
+            String description,
+            String posterUrl,
+            String backdropUrl,
+            LocalDate releaseDate,
+            Double rating,
+            Integer duration,
+            String language,
+            String genre) {
 
         this.title = title;
         this.description = description;
@@ -62,6 +57,14 @@ public class Movie {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getTmdbId() {
+        return tmdbId;
+    }
+
+    public void setTmdbId(Long tmdbId) {
+        this.tmdbId = tmdbId;
     }
 
     public String getTitle() {
