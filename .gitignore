@@ -20,3 +20,7 @@ client/dist/
 .idea/
 *.iml
 .DS_Store
+
+.env
+.env.*
+!.env.example
