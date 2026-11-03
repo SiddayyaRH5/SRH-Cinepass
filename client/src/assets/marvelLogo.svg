@@ -1,0 +1,10 @@
+<svg width="220" height="90" viewBox="0 0 220 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Red rectangle behind "Welcome To" -->
+  <rect x="0" y="0" width="220" height="45" fill="#ED1C24"/>
+  <!-- "Welcome To" text on top -->
+  <text x="15" y="32" fill="white" font-size="32" font-family="Segoe UI, Arial, sans-serif" font-weight="bold">Welcome To</text>
+  <!-- Black rectangle behind "CinePass" -->
+  <rect x="0" y="45" width="220" height="45" fill="#000000"/>
+  <!-- "CinePass" text below -->
+  <text x="15" y="78" fill="white" font-size="32" font-family="Segoe UI, Arial, sans-serif" font-weight="bold">CinePass</text>
+</svg>

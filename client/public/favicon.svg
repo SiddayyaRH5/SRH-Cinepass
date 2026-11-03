@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <style>
+      .brand { font: 700 16px system-ui, sans-serif; fill: #fff; }
+    </style>
+  </defs>
+
+  <!-- Ticket Shape -->
+  <path d="M10 20 H110
+           a10 10 0 0 1 10 10
+           v8
+           a12 12 0 0 0 0 24
+           v8
+           a10 10 0 0 1 -10 10
+           H10
+           a10 10 0 0 1 -10 -10
+           v-8
+           a12 12 0 0 0 0 -24
+           v-8
+           a10 10 0 0 1 10 -10 Z"
+        fill="url(#g)"/>
+
+  <!-- Play Icon -->
+  <circle cx="34" cy="60" r="16" fill="white" opacity="0.95"/>
+  <polygon points="28,50 46,60 28,70" fill="url(#g)"/>
+
+  <!-- Brand Text -->
+  <text class="brand" x="60" y="65">SRH</text>
+</svg>
