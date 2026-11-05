@@ -8,7 +8,10 @@ import com.srh.cinepass.repository.UserRepository;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+<<<<<<< HEAD
 import org.springframework.transaction.annotation.Transactional;
+=======
+>>>>>>> origin/main
 
 @Service
 public class AuthService {
@@ -26,7 +29,10 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
+<<<<<<< HEAD
     @Transactional
+=======
+>>>>>>> origin/main
     public User signup(SignupRequest request) {
 
         if (request.getName() == null ||
@@ -82,7 +88,10 @@ public class AuthService {
         return userRepository.save(user);
     }
 
+<<<<<<< HEAD
     @Transactional(readOnly = true)
+=======
+>>>>>>> origin/main
     public LoginResponse login(LoginRequest request) {
 
         if (request.getEmail() == null ||

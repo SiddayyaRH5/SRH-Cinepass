@@ -21,7 +21,11 @@ export const LocationProvider = ({ children }) => {
 
       return JSON.parse(savedLocation);
 
+<<<<<<< HEAD
     } catch {
+=======
+    } catch (error) {
+>>>>>>> origin/main
 
       // Remove old-format location data
       localStorage.removeItem('cinepassLocation');

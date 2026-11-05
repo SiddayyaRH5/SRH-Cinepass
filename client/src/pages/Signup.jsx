@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React from "react";
+=======
+﻿import React from "react";
+>>>>>>> origin/main
 
 import {
   Link,
@@ -42,7 +46,10 @@ export default function Signup() {
 
   const [googleLoading, setGoogleLoading] =
     React.useState(false);
+<<<<<<< HEAD
   const submitLock = React.useRef(false);
+=======
+>>>>>>> origin/main
 
   // ============================================================
   // NORMAL SIGNUP
@@ -75,17 +82,26 @@ export default function Signup() {
       );
       return;
     }
+<<<<<<< HEAD
     if (submitLock.current) return;
 
     try {
       submitLock.current = true;
+=======
+
+    try {
+>>>>>>> origin/main
       setLoading(true);
 
       // --------------------------------------------------------
       // SIGNUP API
       // --------------------------------------------------------
 
+<<<<<<< HEAD
       await apiFetch(
+=======
+      const response = await apiFetch(
+>>>>>>> origin/main
         "/api/auth/signup",
         {
           method: "POST",
@@ -99,6 +115,14 @@ export default function Signup() {
         }
       );
 
+<<<<<<< HEAD
+=======
+      console.log(
+        "Signup response:",
+        response
+      );
+
+>>>>>>> origin/main
       // --------------------------------------------------------
       // SUCCESS
       // --------------------------------------------------------
@@ -118,10 +142,24 @@ export default function Signup() {
       });
 
     } catch (error) {
+<<<<<<< HEAD
       toast.error(error?.message || "Unable to create account");
 
     } finally {
       submitLock.current = false;
+=======
+      console.error(
+        "Signup error:",
+        error
+      );
+
+      toast.error(
+        error?.message ||
+          "Unable to create account"
+      );
+
+    } finally {
+>>>>>>> origin/main
       setLoading(false);
     }
   };
@@ -468,12 +506,15 @@ export default function Signup() {
 
             </button>
 
+<<<<<<< HEAD
             {loading && (
               <p role="status" aria-live="polite" className="mt-3 text-center text-xs text-white/55">
                 Connecting to CinePass. The first connection after inactivity can take longer on free hosting; please keep this page open.
               </p>
             )}
 
+=======
+>>>>>>> origin/main
           </form>
 
 

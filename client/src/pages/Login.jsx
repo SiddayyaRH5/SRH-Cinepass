@@ -30,7 +30,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const [loading, setLoading] = React.useState(false);
+<<<<<<< HEAD
   const submitLock = React.useRef(false);
+=======
+>>>>>>> origin/main
 
   // ============================================================
   // LOGIN
@@ -48,10 +51,15 @@ export default function Login() {
       toast.error("Please enter your password");
       return;
     }
+<<<<<<< HEAD
     if (submitLock.current) return;
 
     try {
       submitLock.current = true;
+=======
+
+    try {
+>>>>>>> origin/main
       setLoading(true);
 
       const response = await apiFetch("/api/auth/login", {
@@ -62,6 +70,11 @@ export default function Login() {
         }),
       });
 
+<<<<<<< HEAD
+=======
+      console.log("Login response:", response);
+
+>>>>>>> origin/main
       if (!response) {
         throw new Error("Invalid server response");
       }
@@ -88,9 +101,18 @@ export default function Login() {
         replace: true,
       });
     } catch (error) {
+<<<<<<< HEAD
       toast.error(error?.message || "Unable to sign in. Please try again.");
     } finally {
       submitLock.current = false;
+=======
+      console.error("Login error:", error);
+
+      toast.error(
+        error?.message || "Invalid email or password"
+      );
+    } finally {
+>>>>>>> origin/main
       setLoading(false);
     }
   };
@@ -525,12 +547,15 @@ export default function Login() {
 
                   </button>
 
+<<<<<<< HEAD
                   {loading && (
                     <p role="status" aria-live="polite" className="mt-3 text-center text-xs text-white/55">
                       Connecting to CinePass. The first connection after inactivity can take longer on free hosting; please keep this page open.
                     </p>
                   )}
 
+=======
+>>>>>>> origin/main
                 </form>
 
 

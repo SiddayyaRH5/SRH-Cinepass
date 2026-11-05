@@ -11,7 +11,11 @@ import {
   Zap,
 } from "lucide-react";
 
+<<<<<<< HEAD
 import { getMovies } from "../lib/api";
+=======
+import { getMovies, getShows } from "../lib/api";
+>>>>>>> origin/main
 import MovieCard from "../components/MovieCard";
 import Loading from "../components/Loading";
 import { useLocationContext } from "../lib/LocationContext";
@@ -20,10 +24,15 @@ export default function Home() {
   const { selectedLocation } = useLocationContext();
 
   const [movies, setMovies] = React.useState([]);
+<<<<<<< HEAD
+=======
+  const [shows, setShows] = React.useState([]);
+>>>>>>> origin/main
   const [loading, setLoading] = React.useState(true);
   const [hero, setHero] = React.useState(null);
 
   React.useEffect(() => {
+<<<<<<< HEAD
     let active = true;
     const controller = new AbortController();
 
@@ -48,6 +57,25 @@ export default function Home() {
       active = false;
       controller.abort();
     };
+=======
+    Promise.allSettled([getMovies(), getShows()])
+      .then(([m, s]) => {
+        const movieList =
+          m.status === "fulfilled" && Array.isArray(m.value)
+            ? m.value
+            : [];
+
+        const showList =
+          s.status === "fulfilled" && Array.isArray(s.value)
+            ? s.value
+            : [];
+
+        setMovies(movieList);
+        setShows(showList);
+        setHero(movieList[0] || null);
+      })
+      .finally(() => setLoading(false));
+>>>>>>> origin/main
   }, []);
 
   if (loading) {

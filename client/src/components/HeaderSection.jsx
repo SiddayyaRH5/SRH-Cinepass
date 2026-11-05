@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 import { CalendarIcon, ClockIcon, ArrowRight } from 'lucide-react'
+=======
+import React, { use } from 'react'
+import { CalendarIcon, ClockIcon, ArrowRight } from 'lucide-react'
+import { assets } from '../assets/assets'
+>>>>>>> origin/main
 import { useNavigate } from 'react-router-dom'
 
 const HeaderSection = () => {

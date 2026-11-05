@@ -3,8 +3,11 @@ package com.srh.cinepass.service;
 import com.srh.cinepass.entity.Location;
 import com.srh.cinepass.repository.LocationRepository;
 import org.springframework.stereotype.Service;
+<<<<<<< HEAD
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+=======
+>>>>>>> origin/main
 
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +21,10 @@ public class LocationService {
         this.locationRepository = locationRepository;
     }
 
+<<<<<<< HEAD
     @Cacheable(cacheNames = "locations")
+=======
+>>>>>>> origin/main
     public List<Location> getAllLocations() {
         return locationRepository.findAll();
     }
@@ -27,12 +33,18 @@ public class LocationService {
         return locationRepository.findById(id);
     }
 
+<<<<<<< HEAD
     @CacheEvict(cacheNames = "locations", allEntries = true)
+=======
+>>>>>>> origin/main
     public Location addLocation(Location location) {
         return locationRepository.save(location);
     }
 
+<<<<<<< HEAD
     @CacheEvict(cacheNames = "locations", allEntries = true)
+=======
+>>>>>>> origin/main
     public Location updateLocation(Long id, Location locationDetails) {
 
         Location location = locationRepository.findById(id)
@@ -47,7 +59,10 @@ public class LocationService {
         return locationRepository.save(location);
     }
 
+<<<<<<< HEAD
     @CacheEvict(cacheNames = "locations", allEntries = true)
+=======
+>>>>>>> origin/main
     public void deleteLocation(Long id) {
 
         if (!locationRepository.existsById(id)) {

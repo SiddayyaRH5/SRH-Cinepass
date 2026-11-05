@@ -8,7 +8,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+<<<<<<< HEAD
 import org.springframework.http.HttpMethod;
+=======
+>>>>>>> origin/main
 
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -37,6 +40,7 @@ public class JwtAuthenticationFilter
     }
 
     @Override
+<<<<<<< HEAD
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
         if ("/health".equals(path)
@@ -65,6 +69,8 @@ public class JwtAuthenticationFilter
     }
 
     @Override
+=======
+>>>>>>> origin/main
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,

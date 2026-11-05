@@ -92,6 +92,7 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
+<<<<<<< HEAD
         <!-- ================= CACHE ================= -->
 
         <dependency>
@@ -104,6 +105,8 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
+=======
+>>>>>>> origin/main
         <!-- ================= MYSQL ================= -->
 
         <dependency>

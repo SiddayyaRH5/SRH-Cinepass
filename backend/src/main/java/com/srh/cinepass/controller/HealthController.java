@@ -2,16 +2,20 @@ package com.srh.cinepass.controller;
 
 import java.time.Instant;
 import java.util.Map;
+<<<<<<< HEAD
 
 import javax.sql.DataSource;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+=======
+>>>>>>> origin/main
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class HealthController {
+<<<<<<< HEAD
 
     private final DataSource dataSource;
 
@@ -47,5 +51,10 @@ public class HealthController {
                 "status", "NOT_READY",
                 "database", "UNAVAILABLE",
                 "timestamp", Instant.now().toString()));
+=======
+    @GetMapping("/health")
+    public Map<String, Object> health() {
+        return Map.of("status", "UP", "service", "SRH-CinePass", "timestamp", Instant.now().toString());
+>>>>>>> origin/main
     }
 }

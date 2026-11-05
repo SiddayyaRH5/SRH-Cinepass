@@ -3,8 +3,11 @@ package com.srh.cinepass.service;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.repository.MovieRepository;
 import org.springframework.stereotype.Service;
+<<<<<<< HEAD
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+=======
+>>>>>>> origin/main
 
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +22,10 @@ public class MovieService {
     }
 
     // Get all movies
+<<<<<<< HEAD
     @Cacheable(cacheNames = "movies")
+=======
+>>>>>>> origin/main
     public List<Movie> getAllMovies() {
         return movieRepository.findAll();
     }
@@ -30,13 +36,19 @@ public class MovieService {
     }
 
     // Add movie
+<<<<<<< HEAD
     @CacheEvict(cacheNames = "movies", allEntries = true)
+=======
+>>>>>>> origin/main
     public Movie addMovie(Movie movie) {
         return movieRepository.save(movie);
     }
 
     // Update movie
+<<<<<<< HEAD
     @CacheEvict(cacheNames = "movies", allEntries = true)
+=======
+>>>>>>> origin/main
     public Movie updateMovie(Long id, Movie movieDetails) {
 
         Movie movie = movieRepository.findById(id)
@@ -57,7 +69,10 @@ public class MovieService {
     }
 
     // Delete movie
+<<<<<<< HEAD
     @CacheEvict(cacheNames = "movies", allEntries = true)
+=======
+>>>>>>> origin/main
     public void deleteMovie(Long id) {
 
         if (!movieRepository.existsById(id)) {

@@ -1,4 +1,8 @@
 import { ArrowRight, Group, ShowerHead } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import React, { use } from 'react'
+>>>>>>> origin/main
 import { useNavigate } from 'react-router-dom'
 import BlurCircle from './BlurCircle';
 import { dummyShowsData } from '../assets/assets';

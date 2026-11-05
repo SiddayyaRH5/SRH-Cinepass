@@ -4,8 +4,11 @@ import com.srh.cinepass.filter.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+<<<<<<< HEAD
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
+=======
+>>>>>>> origin/main
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -37,6 +40,7 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+<<<<<<< HEAD
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health", "/api/health/**").permitAll()
@@ -68,6 +72,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/tmdb/sync/**").permitAll()
                 .requestMatchers("/api/auth/**").authenticated()
                 .anyRequest().authenticated())
+=======
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/health", "/api/auth/login", "/api/auth/signup", "/api/auth/me").permitAll()
+                .requestMatchers("/api/movies/**", "/api/theatres/**", "/api/shows/**", "/api/locations/**").permitAll()
+                .anyRequest().permitAll())
+>>>>>>> origin/main
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -88,7 +98,11 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(origins.stream().distinct().toList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+<<<<<<< HEAD
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-SYNC-KEY"));
+=======
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
+>>>>>>> origin/main
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
 

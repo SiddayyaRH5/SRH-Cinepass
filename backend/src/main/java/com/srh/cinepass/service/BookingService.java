@@ -195,7 +195,10 @@ public class BookingService {
     // GET BOOKING BY ID
     // ==========================================
 
+<<<<<<< HEAD
     @Transactional(readOnly = true)
+=======
+>>>>>>> origin/main
     public Booking getBookingById(Long id) {
 
         return bookingRepository.findById(id)
@@ -208,7 +211,10 @@ public class BookingService {
     // GET USER BOOKINGS
     // ==========================================
 
+<<<<<<< HEAD
     @Transactional(readOnly = true)
+=======
+>>>>>>> origin/main
     public List<Booking> getBookingsByUser(String userId) {
 
         return bookingRepository.findByUserId(userId);
@@ -218,7 +224,10 @@ public class BookingService {
     // GET ALL BOOKINGS
     // ==========================================
 
+<<<<<<< HEAD
     @Transactional(readOnly = true)
+=======
+>>>>>>> origin/main
     public List<Booking> getAllBookings() {
 
         return bookingRepository.findAll();
@@ -228,7 +237,10 @@ public class BookingService {
     // GET BOOKINGS FOR SHOW
     // ==========================================
 
+<<<<<<< HEAD
     @Transactional(readOnly = true)
+=======
+>>>>>>> origin/main
     public List<Booking> getBookingsByShow(Long showId) {
 
         return bookingRepository.findByShowId(showId);
