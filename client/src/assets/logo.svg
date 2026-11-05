@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="720" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">SRH CinePass Logo</title>
+  <desc id="desc">A modern ticket-shaped logo with a play icon and SRH wordmark for a movie ticket booking app.</desc>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.22"/>
+    </filter>
+    <style>
+      .wordmark { font: 700 92px/1.1 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji"; letter-spacing: 0.5px; }
+      .tagline { font: 500 34px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial; opacity: .85; }
+    </style>
+  </defs>
+
+  <!-- Background for safe preview -->
+  <rect width="100%" height="100%" fill="none"/>
+
+  <!-- Logo Group -->
+  <g transform="translate(60,60)">
+    <!-- Ticket Icon -->
+    <g transform="translate(0,0)" filter="url(#softShadow)">
+      <path d="M40 0 H340
+               a32 32 0 0 1 32 32
+               v28
+               a38 38 0 0 0 0 76
+               v28
+               a32 32 0 0 1 -32 32
+               H40
+               a32 32 0 0 1 -32 -32
+               v-28
+               a38 38 0 0 0 0 -76
+               v-28
+               A32 32 0 0 1 40 0 Z"
+            fill="url(#g)" rx="28" ry="28"/>
+      <g fill="white" opacity="0.9">
+        <circle cx="190" cy="24" r="3"/>
+        <circle cx="190" cy="48" r="3"/>
+        <circle cx="190" cy="72" r="3"/>
+        <circle cx="190" cy="96" r="3"/>
+        <circle cx="190" cy="120" r="3"/>
+        <circle cx="190" cy="144" r="3"/>
+      </g>
+      <circle cx="115" cy="96" r="52" fill="white" opacity="0.96"/>
+      <polygon points="100,70 150,96 100,122" fill="url(#g)"/>
+      <g fill="white" opacity="0.95">
+        <path d="M292 40 l6 12 13 2 -10 9 2 13 -11 -7 -11 7 2 -13 -10 -9 13 -2z"/>
+        <path d="M318 120 l4 8 9 1 -7 6 1 9 -8 -5 -8 5 1 -9 -7 -6 9 -1z"/>
+      </g>
+    </g>
+
+    <!-- Wordmark -->
+    <g transform="translate(420,20)">
+      <text class="wordmark" x="0" y="95" fill="white">SRH</text>
+      <text class="wordmark" x="220" y="95" fill="white" opacity="0.95">CinePass</text>
+      <rect x="0" y="120" width="540" height="8" rx="4" fill="url(#g)"/>
+      <text class="tagline" x="4" y="168" fill="white">Movie Tickets • Shows • Offers</text>
+    </g>
+  </g>
+</svg>

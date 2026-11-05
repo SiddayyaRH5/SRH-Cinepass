@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: srh-cinepass
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health/live
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://srh-cinepass.vercel.app
+
+      - key: TMDB_ACCESS_TOKEN
+        sync: false
+      - key: TMDB_SYNC_KEY
+        sync: false
+      - key: DB_POOL_MAX_SIZE
+        value: "4"
+      - key: DB_POOL_MIN_IDLE
+        value: "1"
