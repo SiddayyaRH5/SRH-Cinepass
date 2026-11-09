@@ -1,0 +1,22 @@
+# Node / frontend
+node_modules/
+client/node_modules/
+client/dist/
+
+# Java / Maven
+**/target/
+**/build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# IDE / OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
