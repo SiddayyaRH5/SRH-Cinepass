@@ -1,4 +1,4 @@
-package com.srh.cinepass.entity;
+﻿package com.srh.cinepass.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,6 +13,8 @@ public class Movie {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private Long tmdbId;
 
     private String title;
 
@@ -62,6 +64,14 @@ public class Movie {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getTmdbId() {
+        return tmdbId;
+    }
+
+    public void setTmdbId(Long tmdbId) {
+        this.tmdbId = tmdbId;
     }
 
     public String getTitle() {
