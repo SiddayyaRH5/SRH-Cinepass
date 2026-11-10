@@ -34,11 +34,11 @@ export default function SeatLayout() {
       .then(([s, ss]) => {
         setShow(s);
         let seatList = Array.isArray(ss) ? ss : [];
-        // Fallback: If no seats returned from backend, generate a realistic 60-seat layout (6 rows: A to F, 10 seats each) with some random booked seats
+        // Fallback: If no seats returned from backend, generate a grand 120-seat layout (12 rows: A to L, 10 seats each) with realistic random booked seats
         if (seatList.length === 0) {
-          seatList = Array.from({ length: 60 }, (_, index) => {
-            // Randomly pre-book about 25% of seats to make it look authentic
-            const isBooked = (index * 7 + 3) % 4 === 0 || index === 4 || index === 12 || index === 25;
+          seatList = Array.from({ length: 120 }, (_, index) => {
+            // Randomly pre-book a realistic subset of seats across rows A through L
+            const isBooked = (index * 7 + 3) % 4 === 0 || index % 7 === 1 || index % 13 === 0;
             return {
               id: index + 1,
               seatNumber: `S${index + 1}`,
