@@ -17,7 +17,7 @@ public class Show {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "theater_id", nullable = false)
-    private Theater theatre;
+    private Theatre theatre;
 
     @Column(name = "show_time", nullable = false)
     private LocalDateTime showDate;
@@ -32,8 +32,8 @@ public class Show {
     public Movie getMovie() { return movie; }
     public void setMovie(Movie movie) { this.movie = movie; }
 
-    public Theater getTheatre() { return theatre; }
-    public void setTheatre(Theater theatre) { this.theatre = theatre; }
+    public Theatre getTheatre() { return theatre; }
+    public void setTheatre(Theatre theatre) { this.theatre = theatre; }
 
     public LocalDateTime getShowDate() { return showDate; }
     public void setShowDate(LocalDateTime showDate) { this.showDate = showDate; }
