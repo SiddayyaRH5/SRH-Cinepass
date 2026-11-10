@@ -30,15 +30,22 @@ export default function SeatLayout() {
      LOAD SHOW + SEATS
   ========================================================= */
   React.useEffect(() => {
-    Promise.all([getShow(id), getSeats(id)])
+    Promise.all([getShow(id), getSeats(id).catch(() => [])])
       .then(([s, ss]) => {
         setShow(s);
-        setSeats(Array.isArray(ss) ? ss : []);
+        let seatList = Array.isArray(ss) ? ss : [];
+        // Fallback: If no seats returned from backend, generate a default 40-seat layout (4 rows of 10)
+        if (seatList.length === 0) {
+          seatList = Array.from({ length: 40 }, (_, index) => ({
+            id: index + 1,
+            seatNumber: `S${index + 1}`,
+            booked: false
+          }));
+        }
+        setSeats(seatList);
       })
       .catch((e) => {
-        toast.error(
-          e.message || "Unable to load seats"
-        );
+        toast.error(e.message || "Unable to load seats");
       })
       .finally(() => {
         setLoading(false);
