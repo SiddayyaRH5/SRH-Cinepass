@@ -21,6 +21,7 @@ public class TmdbService {
     private String tmdbAccessToken;
 
     private static final String TMDB_SEARCH_URL = "https://api.themoviedb.org/3/search/movie?query=";
+    private static final String TMDB_DETAILS_URL = "https://api.themoviedb.org/3/movie/";
     private static final String IMAGE_BASE_POSTER = "https://image.tmdb.org/t/p/w500";
     private static final String IMAGE_BASE_BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
@@ -98,5 +99,50 @@ public class TmdbService {
             System.err.println("Failed to fetch TMDB metadata for movie: " + movie.getTitle() + " -> " + e.getMessage());
         }
         return false;
+    }
+
+    // --- Required methods for TmdbSyncService and TmdbController compatibility ---
+    @SuppressWarnings("unchecked")
+    public Object searchMovies(String query) {
+        try {
+            String url = TMDB_SEARCH_URL + java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + tmdbAccessToken);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            return response.getBody();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public Object getMovieDetails(Long tmdbId) {
+        try {
+            String url = TMDB_DETAILS_URL + tmdbId;
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + tmdbAccessToken);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            return response.getBody();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String getPosterUrl(Object node) {
+        if (node instanceof Map) {
+            Object path = ((Map<?, ?>) node).get("poster_path");
+            if (path != null) return IMAGE_BASE_POSTER + path.toString();
+        }
+        return null;
+    }
+
+    public String getBackdropUrl(Object node) {
+        if (node instanceof Map) {
+            Object path = ((Map<?, ?>) node).get("backdrop_path");
+            if (path != null) return IMAGE_BASE_BACKDROP + path.toString();
+        }
+        return null;
     }
 }
