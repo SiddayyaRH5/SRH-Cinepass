@@ -1,5 +1,6 @@
 package com.srh.cinepass.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.repository.MovieRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,44 +47,35 @@ public class TmdbService {
         return updatedCount;
     }
 
-    @SuppressWarnings("unchecked")
     public boolean fetchAndUpdateMovieMetadata(Movie movie) {
         try {
             if (tmdbAccessToken == null || tmdbAccessToken.isBlank()) {
                 return false;
             }
 
-            String url = TMDB_SEARCH_URL + java.net.URLEncoder.encode(movie.getTitle(), java.nio.charset.StandardCharsets.UTF_8);
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + tmdbAccessToken);
-            headers.set("Accept", "application/json");
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            JsonNode searchResult = searchMovies(movie.getTitle());
+            if (searchResult != null && searchResult.has("results")) {
+                JsonNode results = searchResult.get("results");
+                if (results.isArray() && results.size() > 0) {
+                    JsonNode bestMatch = results.get(0);
 
-            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Map bodyMap = (Map) response.getBody();
-                List results = (List) bodyMap.get("results");
-                if (results != null && !results.isEmpty()) {
-                    Map bestMatch = (Map) results.get(0);
+                    String posterPath = bestMatch.has("poster_path") ? bestMatch.get("poster_path").asText() : null;
+                    String backdropPath = bestMatch.has("backdrop_path") ? bestMatch.get("backdrop_path").asText() : null;
+                    double voteAverage = bestMatch.has("vote_average") ? bestMatch.get("vote_average").asDouble() : 0.0;
+                    String overview = bestMatch.has("overview") ? bestMatch.get("overview").asText() : null;
+                    String releaseDateStr = bestMatch.has("release_date") ? bestMatch.get("release_date").asText() : null;
 
-                    String posterPath = (String) bestMatch.get("poster_path");
-                    String backdropPath = (String) bestMatch.get("backdrop_path");
-                    Object voteAverage = bestMatch.get("vote_average");
-                    String overview = (String) bestMatch.get("overview");
-                    String releaseDateStr = (String) bestMatch.get("release_date");
-
-                    if (posterPath != null && !posterPath.isBlank()) {
+                    if (posterPath != null && !posterPath.isBlank() && !posterPath.equals("null")) {
                         movie.setPosterUrl(IMAGE_BASE_POSTER + posterPath);
                     }
-                    if (backdropPath != null && !backdropPath.isBlank()) {
+                    if (backdropPath != null && !backdropPath.isBlank() && !backdropPath.equals("null")) {
                         movie.setBackdropUrl(IMAGE_BASE_BACKDROP + backdropPath);
                     }
-                    if (overview != null && (movie.getDescription() == null || movie.getDescription().isBlank())) {
+                    if (overview != null && !overview.isBlank() && (movie.getDescription() == null || movie.getDescription().isBlank())) {
                         movie.setDescription(overview);
                     }
-                    if (voteAverage instanceof Number && (movie.getRating() == null || movie.getRating() == 0.0)) {
-                        movie.setRating(((Number) voteAverage).doubleValue());
+                    if (voteAverage > 0.0 && (movie.getRating() == null || movie.getRating() == 0.0)) {
+                        movie.setRating(voteAverage);
                     }
                     if (releaseDateStr != null && !releaseDateStr.isBlank() && movie.getReleaseDate() == null) {
                         try {
@@ -101,47 +93,48 @@ public class TmdbService {
         return false;
     }
 
-    // --- Required methods for TmdbSyncService and TmdbController compatibility ---
-    @SuppressWarnings("unchecked")
-    public Object searchMovies(String query) {
+    public JsonNode searchMovies(String query) {
         try {
             String url = TMDB_SEARCH_URL + java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8);
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + tmdbAccessToken);
             HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
             return response.getBody();
         } catch (Exception e) {
             return null;
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public Object getMovieDetails(Long tmdbId) {
+    public JsonNode getMovieDetails(Long tmdbId) {
         try {
             String url = TMDB_DETAILS_URL + tmdbId;
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + tmdbAccessToken);
             HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
             return response.getBody();
         } catch (Exception e) {
             return null;
         }
     }
 
-    public String getPosterUrl(Object node) {
-        if (node instanceof Map) {
-            Object path = ((Map<?, ?>) node).get("poster_path");
-            if (path != null) return IMAGE_BASE_POSTER + path.toString();
+    public String getPosterUrl(JsonNode node) {
+        if (node != null && node.has("poster_path")) {
+            String path = node.get("poster_path").asText();
+            if (path != null && !path.isBlank() && !path.equals("null")) {
+                return IMAGE_BASE_POSTER + path;
+            }
         }
         return null;
     }
 
-    public String getBackdropUrl(Object node) {
-        if (node instanceof Map) {
-            Object path = ((Map<?, ?>) node).get("backdrop_path");
-            if (path != null) return IMAGE_BASE_BACKDROP + path.toString();
+    public String getBackdropUrl(JsonNode node) {
+        if (node != null && node.has("backdrop_path")) {
+            String path = node.get("backdrop_path").asText();
+            if (path != null && !path.isBlank() && !path.equals("null")) {
+                return IMAGE_BASE_BACKDROP + path;
+            }
         }
         return null;
     }
