@@ -1,9 +1,7 @@
 package com.srh.cinepass.entity;
 
 import jakarta.persistence.*;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "shows")
@@ -13,81 +11,31 @@ public class Show {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "movie_id", nullable = false)
-    private Movie movie;
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
-    @ManyToOne
-    @JoinColumn(name = "theatre_id", nullable = false)
-    private Theatre theatre;
+    @Column(name = "theater_id", nullable = false)
+    private Long theaterId;
 
-    private LocalDate showDate;
+    @Column(name = "show_time", nullable = false)
+    private LocalDateTime showTime;
 
-    private LocalTime showTime;
-
+    @Column(name = "ticket_price", nullable = false)
     private Double ticketPrice;
 
-    public Show() {
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Show(Movie movie,
-                Theatre theatre,
-                LocalDate showDate,
-                LocalTime showTime,
-                Double ticketPrice) {
+    public Long getMovieId() { return movieId; }
+    public void setMovieId(Long movieId) { this.movieId = movieId; }
 
-        this.movie = movie;
-        this.theatre = theatre;
-        this.showDate = showDate;
-        this.showTime = showTime;
-        this.ticketPrice = ticketPrice;
-    }
+    public Long getTheaterId() { return theaterId; }
+    public void setTheaterId(Long theaterId) { this.theaterId = theaterId; }
 
-    public Long getId() {
-        return id;
-    }
+    public LocalDateTime getShowTime() { return showTime; }
+    public void setShowTime(LocalDateTime showTime) { this.showTime = showTime; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Movie getMovie() {
-        return movie;
-    }
-
-    public void setMovie(Movie movie) {
-        this.movie = movie;
-    }
-
-    public Theatre getTheatre() {
-        return theatre;
-    }
-
-    public void setTheatre(Theatre theatre) {
-        this.theatre = theatre;
-    }
-
-    public LocalDate getShowDate() {
-        return showDate;
-    }
-
-    public void setShowDate(LocalDate showDate) {
-        this.showDate = showDate;
-    }
-
-    public LocalTime getShowTime() {
-        return showTime;
-    }
-
-    public void setShowTime(LocalTime showTime) {
-        this.showTime = showTime;
-    }
-
-    public Double getTicketPrice() {
-        return ticketPrice;
-    }
-
-    public void setTicketPrice(Double ticketPrice) {
-        this.ticketPrice = ticketPrice;
-    }
+    public Double getTicketPrice() { return ticketPrice; }
+    public void setTicketPrice(Double ticketPrice) { this.ticketPrice = ticketPrice; }
 }
