@@ -11,30 +11,32 @@ public class Show {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "movie_id", nullable = false)
-    private Long movieId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "movie_id", nullable = false)
+    private Movie movie;
 
-    @Column(name = "theater_id", nullable = false)
-    private Long theaterId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "theater_id", nullable = false)
+    private Theater theatre;
 
     @Column(name = "show_time", nullable = false)
-    private LocalDateTime showTime;
+    private LocalDateTime showDate;
 
     @Column(name = "ticket_price", nullable = false)
     private Double ticketPrice;
 
-    // Getters and Setters
+    // Getters and Setters matching service and controller methods
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Long getMovieId() { return movieId; }
-    public void setMovieId(Long movieId) { this.movieId = movieId; }
+    public Movie getMovie() { return movie; }
+    public void setMovie(Movie movie) { this.movie = movie; }
 
-    public Long getTheaterId() { return theaterId; }
-    public void setTheaterId(Long theaterId) { this.theaterId = theaterId; }
+    public Theater getTheatre() { return theatre; }
+    public void setTheatre(Theater theatre) { this.theatre = theatre; }
 
-    public LocalDateTime getShowTime() { return showTime; }
-    public void setShowTime(LocalDateTime showTime) { this.showTime = showTime; }
+    public LocalDateTime getShowDate() { return showDate; }
+    public void setShowDate(LocalDateTime showDate) { this.showDate = showDate; }
 
     public Double getTicketPrice() { return ticketPrice; }
     public void setTicketPrice(Double ticketPrice) { this.ticketPrice = ticketPrice; }
