@@ -37,13 +37,15 @@ public class Show {
     public Theatre getTheatre() { return theatre; }
     public void setTheatre(Theatre theatre) { this.theatre = theatre; }
 
-    public LocalDateTime getShowTime() { return showTime; }
-    public void setShowTime(LocalDateTime showTime) { this.showTime = showTime; }
-    public void setShowTime(LocalDate date) { 
-        this.showTime = date != null ? LocalDateTime.of(date, this.showTime != null ? this.showTime.toLocalTime() : LocalTime.MIDNIGHT) : null; 
+    // Return LocalTime to match ShowService expectations
+    public LocalTime getShowTime() { 
+        return showTime != null ? showTime.toLocalTime() : null; 
     }
     public void setShowTime(LocalTime time) { 
         this.showTime = time != null ? LocalDateTime.of(this.showTime != null ? this.showTime.toLocalDate() : LocalDate.now(), time) : null; 
+    }
+    public void setShowTime(LocalDateTime dateTime) { 
+        this.showTime = dateTime; 
     }
 
     public LocalDate getShowDate() { 
