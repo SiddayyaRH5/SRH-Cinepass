@@ -1,6 +1,7 @@
 package com.srh.cinepass.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -35,12 +36,23 @@ public class Show {
     public Theatre getTheatre() { return theatre; }
     public void setTheatre(Theatre theatre) { this.theatre = theatre; }
 
-    // Support both method names for maximum compatibility across services
-    public LocalDateTime getShowTime() { return showTime; }
-    public void setShowTime(LocalDateTime showTime) { this.showTime = showTime; }
+    // Compatible with ShowService expecting LocalDate
+    public LocalDate getShowTime() { 
+        return showTime != null ? showTime.toLocalDate() : null; 
+    }
+    public void setShowTime(LocalDateTime showTime) { 
+        this.showTime = showTime; 
+    }
+    public void setShowTime(LocalDate showDate) { 
+        this.showTime = showDate != null ? showDate.atStartOfDay() : null; 
+    }
 
-    public LocalDateTime getShowDate() { return showTime; }
-    public void setShowDate(LocalDateTime showDate) { this.showTime = showDate; }
+    public LocalDate getShowDate() { 
+        return showTime != null ? showTime.toLocalDate() : null; 
+    }
+    public void setShowDate(LocalDate showDate) { 
+        this.showTime = showDate != null ? showDate.atStartOfDay() : null; 
+    }
 
     public Double getTicketPrice() { return ticketPrice; }
     public void setTicketPrice(Double ticketPrice) { this.ticketPrice = ticketPrice; }
