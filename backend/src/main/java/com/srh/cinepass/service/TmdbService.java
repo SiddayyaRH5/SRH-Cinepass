@@ -1,6 +1,5 @@
 package com.srh.cinepass.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.repository.MovieRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,23 +46,24 @@ public class TmdbService {
         return updatedCount;
     }
 
+    @SuppressWarnings("unchecked")
     public boolean fetchAndUpdateMovieMetadata(Movie movie) {
         try {
             if (tmdbAccessToken == null || tmdbAccessToken.isBlank()) {
                 return false;
             }
 
-            JsonNode searchResult = searchMovies(movie.getTitle());
-            if (searchResult != null && searchResult.has("results")) {
-                JsonNode results = searchResult.get("results");
-                if (results.isArray() && results.size() > 0) {
-                    JsonNode bestMatch = results.get(0);
+            Map searchResult = (Map) searchMovies(movie.getTitle());
+            if (searchResult != null && searchResult.containsKey("results")) {
+                List results = (List) searchResult.get("results");
+                if (results != null && !results.isEmpty()) {
+                    Map bestMatch = (Map) results.get(0);
 
-                    String posterPath = bestMatch.has("poster_path") ? bestMatch.get("poster_path").asText() : null;
-                    String backdropPath = bestMatch.has("backdrop_path") ? bestMatch.get("backdrop_path").asText() : null;
-                    double voteAverage = bestMatch.has("vote_average") ? bestMatch.get("vote_average").asDouble() : 0.0;
-                    String overview = bestMatch.has("overview") ? bestMatch.get("overview").asText() : null;
-                    String releaseDateStr = bestMatch.has("release_date") ? bestMatch.get("release_date").asText() : null;
+                    String posterPath = (String) bestMatch.get("poster_path");
+                    String backdropPath = (String) bestMatch.get("backdrop_path");
+                    Object voteAverage = bestMatch.get("vote_average");
+                    String overview = (String) bestMatch.get("overview");
+                    String releaseDateStr = (String) bestMatch.get("release_date");
 
                     if (posterPath != null && !posterPath.isBlank() && !posterPath.equals("null")) {
                         movie.setPosterUrl(IMAGE_BASE_POSTER + posterPath);
@@ -74,8 +74,8 @@ public class TmdbService {
                     if (overview != null && !overview.isBlank() && (movie.getDescription() == null || movie.getDescription().isBlank())) {
                         movie.setDescription(overview);
                     }
-                    if (voteAverage > 0.0 && (movie.getRating() == null || movie.getRating() == 0.0)) {
-                        movie.setRating(voteAverage);
+                    if (voteAverage instanceof Number && (movie.getRating() == null || movie.getRating() == 0.0)) {
+                        movie.setRating(((Number) voteAverage).doubleValue());
                     }
                     if (releaseDateStr != null && !releaseDateStr.isBlank() && movie.getReleaseDate() == null) {
                         try {
@@ -93,47 +93,49 @@ public class TmdbService {
         return false;
     }
 
-    public JsonNode searchMovies(String query) {
+    @SuppressWarnings("unchecked")
+    public Object searchMovies(String query) {
         try {
             String url = TMDB_SEARCH_URL + java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8);
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + tmdbAccessToken);
             HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
+            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
             return response.getBody();
         } catch (Exception e) {
             return null;
         }
     }
 
-    public JsonNode getMovieDetails(Long tmdbId) {
+    @SuppressWarnings("unchecked")
+    public Object getMovieDetails(Long tmdbId) {
         try {
             String url = TMDB_DETAILS_URL + tmdbId;
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + tmdbAccessToken);
             HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
+            ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
             return response.getBody();
         } catch (Exception e) {
             return null;
         }
     }
 
-    public String getPosterUrl(JsonNode node) {
-        if (node != null && node.has("poster_path")) {
-            String path = node.get("poster_path").asText();
-            if (path != null && !path.isBlank() && !path.equals("null")) {
-                return IMAGE_BASE_POSTER + path;
+    public String getPosterUrl(Object node) {
+        if (node instanceof Map) {
+            Object path = ((Map<?, ?>) node).get("poster_path");
+            if (path != null && !path.toString().isBlank() && !path.toString().equals("null")) {
+                return IMAGE_BASE_POSTER + path.toString();
             }
         }
         return null;
     }
 
-    public String getBackdropUrl(JsonNode node) {
-        if (node != null && node.has("backdrop_path")) {
-            String path = node.get("backdrop_path").asText();
-            if (path != null && !path.isBlank() && !path.equals("null")) {
-                return IMAGE_BASE_BACKDROP + path;
+    public String getBackdropUrl(Object node) {
+        if (node instanceof Map) {
+            Object path = ((Map<?, ?>) node).get("backdrop_path");
+            if (path != null && !path.toString().isBlank() && !path.toString().equals("null")) {
+                return IMAGE_BASE_BACKDROP + path.toString();
             }
         }
         return null;
