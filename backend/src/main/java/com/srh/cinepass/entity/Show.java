@@ -3,6 +3,7 @@ package com.srh.cinepass.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "shows")
@@ -36,22 +37,20 @@ public class Show {
     public Theatre getTheatre() { return theatre; }
     public void setTheatre(Theatre theatre) { this.theatre = theatre; }
 
-    // Compatible with ShowService expecting LocalDate
-    public LocalDate getShowTime() { 
-        return showTime != null ? showTime.toLocalDate() : null; 
+    public LocalDateTime getShowTime() { return showTime; }
+    public void setShowTime(LocalDateTime showTime) { this.showTime = showTime; }
+    public void setShowTime(LocalDate date) { 
+        this.showTime = date != null ? LocalDateTime.of(date, this.showTime != null ? this.showTime.toLocalTime() : LocalTime.MIDNIGHT) : null; 
     }
-    public void setShowTime(LocalDateTime showTime) { 
-        this.showTime = showTime; 
-    }
-    public void setShowTime(LocalDate showDate) { 
-        this.showTime = showDate != null ? showDate.atStartOfDay() : null; 
+    public void setShowTime(LocalTime time) { 
+        this.showTime = time != null ? LocalDateTime.of(this.showTime != null ? this.showTime.toLocalDate() : LocalDate.now(), time) : null; 
     }
 
     public LocalDate getShowDate() { 
         return showTime != null ? showTime.toLocalDate() : null; 
     }
-    public void setShowDate(LocalDate showDate) { 
-        this.showTime = showDate != null ? showDate.atStartOfDay() : null; 
+    public void setShowDate(LocalDate date) { 
+        this.showTime = date != null ? LocalDateTime.of(date, this.showTime != null ? this.showTime.toLocalTime() : LocalTime.MIDNIGHT) : null; 
     }
 
     public Double getTicketPrice() { return ticketPrice; }
