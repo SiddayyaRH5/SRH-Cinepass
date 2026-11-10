@@ -20,12 +20,12 @@ public class Show {
     private Theatre theatre;
 
     @Column(name = "show_time", nullable = false)
-    private LocalDateTime showDate;
+    private LocalDateTime showTime;
 
     @Column(name = "ticket_price", nullable = false)
     private Double ticketPrice;
 
-    // Getters and Setters matching service and controller methods
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -35,8 +35,12 @@ public class Show {
     public Theatre getTheatre() { return theatre; }
     public void setTheatre(Theatre theatre) { this.theatre = theatre; }
 
-    public LocalDateTime getShowDate() { return showDate; }
-    public void setShowDate(LocalDateTime showDate) { this.showDate = showDate; }
+    // Support both method names for maximum compatibility across services
+    public LocalDateTime getShowTime() { return showTime; }
+    public void setShowTime(LocalDateTime showTime) { this.showTime = showTime; }
+
+    public LocalDateTime getShowDate() { return showTime; }
+    public void setShowDate(LocalDateTime showDate) { this.showTime = showDate; }
 
     public Double getTicketPrice() { return ticketPrice; }
     public void setTicketPrice(Double ticketPrice) { this.ticketPrice = ticketPrice; }
