@@ -14,7 +14,6 @@ public class Movie {
     private Long id;
 
     private Long tmdbId;
-
     private String title;
     private String description;
     private String posterUrl;
