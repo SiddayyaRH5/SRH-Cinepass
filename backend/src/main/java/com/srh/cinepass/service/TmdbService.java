@@ -61,9 +61,10 @@ public class TmdbService {
 
             ResponseEntity response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                List> results = (List>) response.getBody().get("results");
+                Map bodyMap = (Map) response.getBody();
+                List results = (List) bodyMap.get("results");
                 if (results != null && !results.isEmpty()) {
-                    Map<String, Object> bestMatch = results.get(0);
+                    Map bestMatch = (Map) results.get(0);
 
                     String posterPath = (String) bestMatch.get("poster_path");
                     String backdropPath = (String) bestMatch.get("backdrop_path");
