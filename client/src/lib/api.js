@@ -1,6 +1,7 @@
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:8080";
+
+const API_BASE = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+).replace(/\/+$/, "");
 
 export const apiUrl = (path) => `${API_BASE}${path}`;
 
@@ -10,9 +11,9 @@ export async function apiFetch(path, options = {}) {
   const headers = new Headers(options.headers || {});
 
   if (
-    !headers.has("Content-Type") &&
     options.body &&
-    !(options.body instanceof FormData)
+    !(options.body instanceof FormData) &&
+    !headers.has("Content-Type")
   ) {
     headers.set("Content-Type", "application/json");
   }
@@ -26,8 +27,14 @@ export async function apiFetch(path, options = {}) {
     headers,
   });
 
-  const contentType =
-    response.headers.get("content-type") || "";
+  if (response.status === 204) {
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+    return null;
+  }
+
+  const contentType = response.headers.get("content-type") || "";
 
   const data = contentType.includes("application/json")
     ? await response.json().catch(() => null)
@@ -47,11 +54,10 @@ export async function apiFetch(path, options = {}) {
   }
 
   return data;
-};
+}
 
 // MOVIES
-export const getMovies = () =>
-  apiFetch("/api/movies");
+export const getMovies = () => apiFetch("/api/movies");
 
 export const getMovie = (id) =>
   apiFetch(`/api/movies/${id}`);

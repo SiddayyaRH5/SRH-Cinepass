@@ -1,3 +1,4 @@
+
 package com.srh.cinepass.service;
 
 import com.srh.cinepass.dto.BookingRequest;
@@ -21,212 +22,172 @@ import java.util.Set;
 @Service
 public class BookingService {
 
-    private final BookingRepository bookingRepository;
-    private final ShowRepository showRepository;
-    private final SeatRepository seatRepository;
+        private final BookingRepository bookingRepository;
+        private final ShowRepository showRepository;
+        private final SeatRepository seatRepository;
 
-    public BookingService(
-            BookingRepository bookingRepository,
-            ShowRepository showRepository,
-            SeatRepository seatRepository) {
+        public BookingService(
+                        BookingRepository bookingRepository,
+                        ShowRepository showRepository,
+                        SeatRepository seatRepository) {
 
-        this.bookingRepository = bookingRepository;
-        this.showRepository = showRepository;
-        this.seatRepository = seatRepository;
-    }
-
-    // ==========================================
-    // CREATE BOOKING
-    // ==========================================
-
-    @Transactional
-    public Booking createBooking(BookingRequest request) {
-
-        // ------------------------------------------
-        // 1. Validate request
-        // ------------------------------------------
-
-        if (request.getShowId() == null) {
-            throw new RuntimeException("Show ID is required");
+                this.bookingRepository = bookingRepository;
+                this.showRepository = showRepository;
+                this.seatRepository = seatRepository;
         }
 
-        if (request.getSeatIds() == null ||
-                request.getSeatIds().isEmpty()) {
+        // CREATE BOOKING
+        @Transactional
+        public Booking createBooking(BookingRequest request) {
 
-            throw new RuntimeException(
-                    "At least one seat must be selected");
+                // 1. Validate request.
+                if (request == null) {
+                        throw new IllegalArgumentException("Booking request is required");
+                }
+
+                if (request.getShowId() == null) {
+                        throw new IllegalArgumentException("Show ID is required");
+                }
+
+                if (request.getSeatIds() == null ||
+                                request.getSeatIds().isEmpty()) {
+
+                        throw new IllegalArgumentException(
+                                        "At least one seat must be selected");
+                }
+
+                if (request.getSeatIds().size() > 5) {
+                        throw new IllegalArgumentException(
+                                        "Maximum 5 seats can be booked");
+                }
+
+                if (request.getUserId() == null ||
+                                request.getUserId().isBlank()) {
+
+                        throw new IllegalArgumentException("User ID is required");
+                }
+
+                // 2. Find show.
+                Show show = showRepository.findById(request.getShowId())
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Show not found with ID: " + request.getShowId()));
+
+                // 3. Prevent duplicate seat IDs.
+                Set<Long> uniqueSeatIds = new HashSet<>(request.getSeatIds());
+
+                if (uniqueSeatIds.size() != request.getSeatIds().size()) {
+                        throw new IllegalArgumentException(
+                                        "Duplicate seats are not allowed");
+                }
+
+                // 4. Sort IDs to maintain consistent lock order.
+                List<Long> sortedSeatIds = new ArrayList<>(uniqueSeatIds);
+                Collections.sort(sortedSeatIds);
+
+                // 5. Lock and validate every selected seat.
+                List<Seat> selectedSeats = new ArrayList<>();
+
+                for (Long seatId : sortedSeatIds) {
+
+                        if (seatId == null) {
+                                throw new IllegalArgumentException("Invalid seat ID");
+                        }
+
+                        Seat seat = seatRepository.findByIdForUpdate(seatId)
+                                        .orElseThrow(() -> new IllegalArgumentException(
+                                                        "Seat not found with ID: " + seatId));
+
+                        // Make sure the seat belongs to the selected show.
+                        if (seat.getShow() == null ||
+                                        !seat.getShow().getId().equals(show.getId())) {
+
+                                throw new IllegalArgumentException(
+                                                "Seat " + seat.getSeatNumber()
+                                                                + " does not belong to this show");
+                        }
+
+                        // Make sure the seat is still available.
+                        if (seat.isBooked()) {
+                                throw new IllegalArgumentException(
+                                                "Seat " + seat.getSeatNumber()
+                                                                + " is already booked");
+                        }
+
+                        selectedSeats.add(seat);
+                }
+
+                // 6. Mark all selected seats as booked.
+                List<String> seatNumbers = new ArrayList<>();
+
+                for (Seat seat : selectedSeats) {
+                        seat.setBooked(true);
+                        seatNumbers.add(seat.getSeatNumber());
+                }
+
+                // Flush seat changes within the current transaction.
+                seatRepository.saveAllAndFlush(selectedSeats);
+
+                // 7. Calculate total amount on the server.
+                int numberOfSeats = selectedSeats.size();
+
+                double totalAmount = numberOfSeats * show.getTicketPrice();
+
+                // 8. Create booking.
+                Booking booking = new Booking();
+
+                booking.setUserId(request.getUserId());
+                booking.setUserEmail(request.getUserEmail());
+                booking.setShow(show);
+                booking.setSeatNumbers(seatNumbers);
+                booking.setNumberOfSeats(numberOfSeats);
+                booking.setTotalAmount(totalAmount);
+                booking.setStatus("CONFIRMED");
+                booking.setBookingDate(LocalDateTime.now());
+
+                // 9. Save booking.
+                // If saving fails, the transaction rolls back seat changes too.
+                return bookingRepository.saveAndFlush(booking);
         }
 
-        if (request.getSeatIds().size() > 5) {
-            throw new RuntimeException(
-                    "Maximum 5 seats can be booked");
+        // GET BOOKING BY ID
+        @Transactional(readOnly = true)
+        public Booking getBookingById(Long id) {
+
+                return bookingRepository.findById(id)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Booking not found with ID: " + id));
         }
 
-        if (request.getUserId() == null ||
-                request.getUserId().isBlank()) {
+        // GET BOOKINGS BY USER
+        @Transactional(readOnly = true)
+        public List<Booking> getBookingsByUser(String userId) {
 
-            throw new RuntimeException(
-                    "User ID is required");
+                return bookingRepository.findByUserId(userId);
         }
 
-        // ------------------------------------------
-        // 2. Find show
-        // ------------------------------------------
+        // GET ALL BOOKINGS
+        @Transactional(readOnly = true)
+        public List<Booking> getAllBookings() {
 
-        Show show = showRepository.findById(request.getShowId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Show not found with id: "
-                                        + request.getShowId()));
-
-        // ------------------------------------------
-        // 3. Prevent duplicate seat IDs
-        // ------------------------------------------
-
-        Set<Long> uniqueSeatIds =
-                new HashSet<>(request.getSeatIds());
-
-        if (uniqueSeatIds.size() != request.getSeatIds().size()) {
-            throw new RuntimeException(
-                    "Duplicate seats are not allowed");
+                return bookingRepository.findAll();
         }
 
-        // ------------------------------------------
-        // 4. Sort IDs
-        // ------------------------------------------
-        // Sorting helps reduce the possibility of
-        // database deadlocks when multiple users
-        // book different seats simultaneously.
+        // GET BOOKINGS BY SHOW
+        @Transactional(readOnly = true)
+        public List<Booking> getBookingsByShow(Long showId) {
 
-        List<Long> sortedSeatIds =
-                new ArrayList<>(uniqueSeatIds);
-
-        Collections.sort(sortedSeatIds);
-
-        // ------------------------------------------
-        // 5. Lock and validate seats
-        // ------------------------------------------
-
-        List<Seat> selectedSeats = new ArrayList<>();
-
-        for (Long seatId : sortedSeatIds) {
-
-            Seat seat = seatRepository.findById(seatId)
-                    .orElseThrow(() ->
-                            new RuntimeException(
-                                    "Seat not found with id: "
-                                            + seatId));
-
-            // Make sure the seat belongs to this show
-            if (seat.getShow() == null ||
-                    !seat.getShow().getId()
-                            .equals(show.getId())) {
-
-                throw new RuntimeException(
-                        "Seat " + seat.getSeatNumber()
-                                + " does not belong to this show");
-            }
-
-            // Check whether already booked
-            if (seat.isBooked()) {
-
-                throw new RuntimeException(
-                        "Seat " + seat.getSeatNumber()
-                                + " is already booked");
-            }
-
-            selectedSeats.add(seat);
+                return bookingRepository.findByShowId(showId);
         }
 
-        // ------------------------------------------
-        // 6. Mark seats as booked
-        // ------------------------------------------
+        // GET SEATS BY SHOW
+        @Transactional(readOnly = true)
+        public List<Seat> getSeatsByShow(Long showId) {
 
-        List<String> seatNumbers = new ArrayList<>();
+                if (!showRepository.existsById(showId)) {
+                        throw new IllegalArgumentException(
+                                        "Show not found with ID: " + showId);
+                }
 
-        for (Seat seat : selectedSeats) {
-
-            seat.setBooked(true);
-
-            seatRepository.save(seat);
-
-            seatNumbers.add(seat.getSeatNumber());
+                return seatRepository.findByShowIdOrderByIdAsc(showId);
         }
-
-        // ------------------------------------------
-        // 7. Calculate total
-        // ------------------------------------------
-
-        int numberOfSeats = selectedSeats.size();
-
-        double totalAmount =
-                numberOfSeats * show.getTicketPrice();
-
-        // ------------------------------------------
-        // 8. Create booking
-        // ------------------------------------------
-
-        Booking booking = new Booking();
-
-        booking.setUserId(request.getUserId());
-
-        booking.setUserEmail(request.getUserEmail());
-
-        booking.setShow(show);
-
-        booking.setSeatNumbers(seatNumbers);
-
-        booking.setNumberOfSeats(numberOfSeats);
-
-        booking.setTotalAmount(totalAmount);
-
-        booking.setStatus("CONFIRMED");
-
-        booking.setBookingDate(LocalDateTime.now());
-
-        // ------------------------------------------
-        // 9. Save booking
-        // ------------------------------------------
-
-        return bookingRepository.save(booking);
-    }
-
-    // ==========================================
-    // GET BOOKING BY ID
-    // ==========================================
-
-    public Booking getBookingById(Long id) {
-
-        return bookingRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Booking not found with id: " + id));
-    }
-
-    // ==========================================
-    // GET USER BOOKINGS
-    // ==========================================
-
-    public List<Booking> getBookingsByUser(String userId) {
-
-        return bookingRepository.findByUserId(userId);
-    }
-
-    // ==========================================
-    // GET ALL BOOKINGS
-    // ==========================================
-
-    public List<Booking> getAllBookings() {
-
-        return bookingRepository.findAll();
-    }
-
-    // ==========================================
-    // GET BOOKINGS FOR SHOW
-    // ==========================================
-
-    public List<Booking> getBookingsByShow(Long showId) {
-
-        return bookingRepository.findByShowId(showId);
-    }
 }
