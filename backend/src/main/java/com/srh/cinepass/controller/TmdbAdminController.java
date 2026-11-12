@@ -1,7 +1,7 @@
 package com.srh.cinepass.controller;
 
+import com.srh.cinepass.service.CatalogRepairService;
 import com.srh.cinepass.service.TmdbService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,9 +13,14 @@ import java.util.Map;
 public class TmdbAdminController {
 
     private final TmdbService tmdbService;
+    private final CatalogRepairService catalogRepairService;
 
-    public TmdbAdminController(TmdbService tmdbService) {
+    public TmdbAdminController(
+        TmdbService tmdbService,
+        CatalogRepairService catalogRepairService
+    ) {
         this.tmdbService = tmdbService;
+        this.catalogRepairService = catalogRepairService;
     }
 
     @PostMapping("/sync-posters")
@@ -27,10 +32,12 @@ public class TmdbAdminController {
                 "message", "Successfully synchronized posters for " + count + " movies."
             );
         } catch (Exception e) {
-            return Map.of(
-                "success", false,
-                "message", e.getMessage()
-            );
+            return Map.of("success", false, "message", e.getMessage());
         }
+    }
+
+    @PostMapping("/repair-catalog")
+    public Map<String, Object> repairCatalog() {
+        return catalogRepairService.repairCatalog();
     }
 }

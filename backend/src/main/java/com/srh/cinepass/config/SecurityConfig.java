@@ -26,94 +26,97 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final String frontendUrls;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final String frontendUrls;
 
-    public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter,
-            @Value("${app.frontend-url:http://localhost:5173}") String frontendUrls) {
+        public SecurityConfig(
+                        JwtAuthenticationFilter jwtAuthenticationFilter,
+                        @Value("${app.frontend-url:http://localhost:5173}") String frontendUrls) {
 
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.frontendUrls = frontendUrls;
-    }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-
-                .authorizeHttpRequests(auth -> auth
-
-                        .requestMatchers(
-                                "/health",
-                                "/api/auth/login",
-                                "/api/auth/signup",
-                                "/api/auth/me")
-                        .permitAll()
-
-                        .requestMatchers(
-                                "/api/movies/**",
-                                "/api/theatres/**",
-                                "/api/shows/**",
-                                "/api/locations/**")
-                        .permitAll()
-
-                        // All booking and payment endpoints require JWT authentication.
-                        .requestMatchers("/api/bookings/**").authenticated()
-
-                        .anyRequest().permitAll())
-
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-
-        List<String> origins = new ArrayList<>(List.of(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "https://srh-cinepass.vercel.app"));
-
-        if (frontendUrls != null && !frontendUrls.isBlank()) {
-
-            Arrays.stream(frontendUrls.split(","))
-                    .map(String::trim)
-                    .filter(value -> !value.isBlank())
-                    .forEach(origins::add);
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.frontendUrls = frontendUrls;
         }
 
-        CorsConfiguration configuration = new CorsConfiguration();
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        configuration.setAllowedOrigins(
-                origins.stream().distinct().toList());
+                http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(csrf -> csrf.disable())
 
-        configuration.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "DELETE",
-                "PATCH",
-                "OPTIONS"));
+                                .authorizeHttpRequests(auth -> auth
 
-        configuration.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin"));
+                                                .requestMatchers(
+                                                                "/health",
+                                                                "/api/auth/login",
+                                                                "/api/auth/signup",
+                                                                "/api/auth/me")
+                                                .permitAll()
 
-        configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(true);
+                                                .requestMatchers(
+                                                                "/api/movies/**",
+                                                                "/api/theatres/**",
+                                                                "/api/shows/**",
+                                                                "/api/locations/**")
+                                                .permitAll()
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                                                // Admin endpoints require an authenticated ADMIN user.
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-        source.registerCorsConfiguration("/**", configuration);
+                                                // All booking and payment endpoints require JWT authentication.
+                                                .requestMatchers("/api/bookings/**").authenticated()
 
-        return source;
-    }
+                                                .anyRequest().permitAll())
+
+                                .addFilterBefore(
+                                                jwtAuthenticationFilter,
+                                                UsernamePasswordAuthenticationFilter.class);
+
+                return http.build();
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+
+                List<String> origins = new ArrayList<>(List.of(
+                                "http://localhost:5173",
+                                "http://127.0.0.1:5173",
+                                "https://srh-cinepass.vercel.app"));
+
+                if (frontendUrls != null && !frontendUrls.isBlank()) {
+
+                        Arrays.stream(frontendUrls.split(","))
+                                        .map(String::trim)
+                                        .filter(value -> !value.isBlank())
+                                        .forEach(origins::add);
+                }
+
+                CorsConfiguration configuration = new CorsConfiguration();
+
+                configuration.setAllowedOrigins(
+                                origins.stream().distinct().toList());
+
+                configuration.setAllowedMethods(List.of(
+                                "GET",
+                                "POST",
+                                "PUT",
+                                "DELETE",
+                                "PATCH",
+                                "OPTIONS"));
+
+                configuration.setAllowedHeaders(List.of(
+                                "Authorization",
+                                "Content-Type",
+                                "Accept",
+                                "Origin"));
+
+                configuration.setExposedHeaders(List.of("Authorization"));
+                configuration.setAllowCredentials(true);
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+                source.registerCorsConfiguration("/**", configuration);
+
+                return source;
+        }
 }
