@@ -47,50 +47,38 @@ public class TmdbService {
     }
 
     public boolean fetchAndUpdateMovieMetadata(Movie movie) {
-        try {
-            if (tmdbAccessToken == null || tmdbAccessToken.isBlank()) {
-                return false;
-            }
-
-            JsonNode searchResult = searchMovies(movie.getTitle());
-            if (searchResult != null && searchResult.has("results")) {
-                JsonNode results = searchResult.get("results");
-                if (results.isArray() && results.size() > 0) {
-                    JsonNode bestMatch = results.get(0);
-
-                    String posterPath = bestMatch.has("poster_path") ? bestMatch.get("poster_path").asText() : null;
-                    String backdropPath = bestMatch.has("backdrop_path") ? bestMatch.get("backdrop_path").asText() : null;
-                    double voteAverage = bestMatch.has("vote_average") ? bestMatch.get("vote_average").asDouble() : 0.0;
-                    String overview = bestMatch.has("overview") ? bestMatch.get("overview").asText() : null;
-                    String releaseDateStr = bestMatch.has("release_date") ? bestMatch.get("release_date").asText() : null;
-
-                    if (posterPath != null && !posterPath.isBlank() && !posterPath.equals("null")) {
-                        movie.setPosterUrl(IMAGE_BASE_POSTER + posterPath);
-                    }
-                    if (backdropPath != null && !backdropPath.isBlank() && !backdropPath.equals("null")) {
-                        movie.setBackdropUrl(IMAGE_BASE_BACKDROP + backdropPath);
-                    }
-                    if (overview != null && !overview.isBlank() && (movie.getDescription() == null || movie.getDescription().isBlank())) {
-                        movie.setDescription(overview);
-                    }
-                    if (voteAverage > 0.0 && (movie.getRating() == null || movie.getRating() == 0.0)) {
-                        movie.setRating(voteAverage);
-                    }
-                    if (releaseDateStr != null && !releaseDateStr.isBlank() && movie.getReleaseDate() == null) {
-                        try {
-                            movie.setReleaseDate(LocalDate.parse(releaseDateStr));
-                        } catch (Exception ignored) {}
-                    }
-
-                    movieRepository.save(movie);
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to fetch TMDB metadata for movie: " + movie.getTitle() + " -> " + e.getMessage());
-        }
+    if (tmdbAccessToken == null || tmdbAccessToken.isBlank()
+            || movie.getTmdbId() == null) {
         return false;
     }
+
+    try {
+        JsonNode details = getMovieDetails(movie.getTmdbId());
+
+        if (details == null || details.isNull()) {
+            return false;
+        }
+
+        String posterUrl = getPosterUrl(details);
+        if (posterUrl == null || posterUrl.isBlank()) {
+            return false;
+        }
+
+        movie.setPosterUrl(posterUrl);
+
+        String backdropUrl = getBackdropUrl(details);
+        if (backdropUrl != null && !backdropUrl.isBlank()) {
+            movie.setBackdropUrl(backdropUrl);
+        }
+
+        movieRepository.save(movie);
+        return true;
+    } catch (Exception e) {
+        System.err.println("Poster update failed for " + movie.getTitle()
+            + ": " + e.getMessage());
+        return false;
+    }
+}
 
     public JsonNode searchMovies(String query) {
         try {
