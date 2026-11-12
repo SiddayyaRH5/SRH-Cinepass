@@ -1,8 +1,10 @@
+
 package com.srh.cinepass.entity;
 
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "seats")
 public class Seat {
 
     @Id
