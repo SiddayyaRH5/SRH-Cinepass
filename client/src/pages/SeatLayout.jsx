@@ -12,10 +12,46 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import { createBooking, getSeats, getShow } from "../lib/api";
+import { apiFetch, getSeats, getShow } from "../lib/api";
 import { formatDate, formatTime, money } from "../lib/formatters";
 import Loading from "../components/Loading";
 import { useAuth } from "../context/AuthContext";
+
+// Load Razorpay Checkout script only once.
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const existingScript = document.querySelector(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+    );
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(true), {
+        once: true,
+      });
+
+      existingScript.addEventListener("error", () => resolve(false), {
+        once: true,
+      });
+
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+
+    document.body.appendChild(script);
+  });
+};
 
 export default function SeatLayout() {
   const { id } = useParams();
@@ -27,6 +63,9 @@ export default function SeatLayout() {
   const [selected, setSelected] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [booking, setBooking] = React.useState(false);
+
+  const checkoutOpened = React.useRef(false);
+  const activeBookingId = React.useRef(null);
 
   // Load the actual show and seats from the backend.
   const loadShowAndSeats = React.useCallback(async () => {
@@ -82,7 +121,7 @@ export default function SeatLayout() {
 
   // Seat selection.
   const choose = (seat) => {
-    if (seat.booked) return;
+    if (seat.booked || booking) return;
 
     setSelected((previous) => {
       const alreadySelected = previous.some(
@@ -114,8 +153,168 @@ export default function SeatLayout() {
     return index >= 0 ? label(index) : "";
   };
 
-  // Confirm booking only when the backend succeeds.
+  // Cancel a pending reservation through the backend.
+  const cancelPendingBooking = async (bookingId) => {
+    if (!bookingId) return;
+
+    try {
+      await apiFetch(`/api/bookings/cancel/${bookingId}`, {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Unable to cancel pending booking:", error);
+      toast.error(
+        "Reservation cancellation could not be confirmed. It will expire automatically."
+      );
+    }
+
+    try {
+      await loadShowAndSeats();
+    } catch {
+      toast.error("Unable to refresh seat availability");
+    }
+  };
+
+  // Open Razorpay Checkout.
+  const openCheckout = (orderData) => {
+    return new Promise((resolve, reject) => {
+      if (!window.Razorpay) {
+        reject(new Error("Razorpay Checkout is not available"));
+        return;
+      }
+
+      checkoutOpened.current = true;
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+
+        name: orderData.name || "SRH CinePass",
+        description: orderData.description || "Movie Ticket Booking",
+
+        order_id: orderData.orderId,
+
+        handler: async function (paymentResponse) {
+          try {
+            toast.loading("Verifying your payment...", {
+              id: "payment-verification",
+            });
+
+            const verification = await apiFetch(
+              "/api/bookings/verify-payment",
+              {
+                method: "POST",
+                body: JSON.stringify({
+                  razorpay_order_id:
+                    paymentResponse.razorpay_order_id,
+
+                  razorpay_payment_id:
+                    paymentResponse.razorpay_payment_id,
+
+                  razorpay_signature:
+                    paymentResponse.razorpay_signature,
+                }),
+              }
+            );
+
+            toast.dismiss("payment-verification");
+
+            if (
+              !verification ||
+              verification.status !== "CONFIRMED"
+            ) {
+              throw new Error(
+                verification?.message ||
+                  "Payment could not be confirmed by the server"
+              );
+            }
+
+            activeBookingId.current = null;
+
+            toast.success("Payment successful! Booking confirmed.");
+
+            resolve({
+              success: true,
+              bookingId: verification.bookingId,
+            });
+          } catch (error) {
+            toast.dismiss("payment-verification");
+
+            console.error("Payment verification failed:", error);
+
+            // Do not release seats automatically here:
+            // Razorpay may have captured payment even if verification
+            // temporarily failed. The reservation expires after 10 minutes.
+            toast.error(
+              error.message ||
+                "Payment verification failed. Please contact support."
+            );
+
+            resolve({
+              success: false,
+              verificationFailed: true,
+            });
+          }
+        },
+
+        prefill: {},
+
+        notes: {
+          project: "SRH CinePass",
+        },
+
+        theme: {
+          color: "#67e8f9",
+        },
+
+        modal: {
+          ondismiss: async function () {
+            if (!checkoutOpened.current) return;
+
+            checkoutOpened.current = false;
+
+            const bookingId = activeBookingId.current;
+            activeBookingId.current = null;
+
+            if (bookingId) {
+              await cancelPendingBooking(bookingId);
+            }
+
+            setBooking(false);
+            toast("Payment window closed. No booking was confirmed.");
+            resolve({
+              success: false,
+              dismissed: true,
+            });
+          },
+        },
+      };
+
+      try {
+        const razorpay = new window.Razorpay(options);
+
+        razorpay.on("payment.failed", function (response) {
+          console.error("Razorpay payment failed:", response.error);
+
+          toast.error(
+            response.error?.description ||
+              "Payment failed. You can retry or close checkout."
+          );
+        });
+
+        razorpay.open();
+      } catch (error) {
+        checkoutOpened.current = false;
+        reject(error);
+      }
+    });
+  };
+
+  // Complete payment-first booking flow.
   const book = async () => {
+    if (booking) return;
+
     if (!isAuthenticated) {
       toast.error("Please login to book tickets");
       navigate("/login");
@@ -132,35 +331,80 @@ export default function SeatLayout() {
       return;
     }
 
+    let pendingBookingId = null;
+
     try {
       setBooking(true);
 
-      const result = await createBooking({
-        showId: Number(id),
-        seatIds: selected.map((seat) => seat.id),
-      });
+      // Load Razorpay Checkout.
+      const scriptLoaded = await loadRazorpayScript();
 
-      if (!result || !result.id) {
-        throw new Error("Booking response is invalid. Please check My Bookings.");
+      if (!scriptLoaded) {
+        throw new Error(
+          "Unable to load Razorpay Checkout. Check your internet connection."
+        );
       }
 
-      toast.success(`Booking #${result.id} confirmed!`);
-
-      // No localStorage booking simulation.
-      // My Bookings must load the saved booking from the backend.
-      navigate("/My-Bookings", {
-        state: { refresh: true },
-      });
-    } catch (error) {
-      toast.error(
-        error.message || "Booking failed. Please try again."
+      // Ask the backend to reserve seats and create a Razorpay order.
+      const orderData = await apiFetch(
+        "/api/bookings/create-order",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            showId: Number(id),
+            seatIds: selected.map((seat) => seat.id),
+          }),
+        }
       );
 
-      // Reload the latest seat availability after a failed attempt.
-      try {
+      if (
+        !orderData ||
+        !orderData.bookingId ||
+        !orderData.orderId ||
+        !orderData.keyId ||
+        !orderData.amount
+      ) {
+        throw new Error(
+          orderData?.message ||
+            "Invalid payment order received from server"
+        );
+      }
+
+      pendingBookingId = orderData.bookingId;
+      activeBookingId.current = pendingBookingId;
+
+      // Open Razorpay payment window.
+      const result = await openCheckout(orderData);
+
+      if (result.success) {
+        navigate("/My-Bookings", {
+          state: { refresh: true },
+        });
+      } else if (result.verificationFailed) {
+        // Payment may have succeeded at Razorpay.
+        // Keep the reservation until expiry; do not pretend it failed.
         await loadShowAndSeats();
-      } catch {
-        toast.error("Unable to refresh seat availability");
+      } else if (result.dismissed) {
+        // Cancellation and seat refresh are handled in ondismiss.
+      }
+    } catch (error) {
+      console.error("Booking error:", error);
+
+      toast.error(
+        error.message || "Unable to start payment. Please try again."
+      );
+
+      // If the order was created but checkout failed to open,
+      // release the pending reservation.
+      if (pendingBookingId && activeBookingId.current) {
+        activeBookingId.current = null;
+        await cancelPendingBooking(pendingBookingId);
+      } else {
+        try {
+          await loadShowAndSeats();
+        } catch {
+          toast.error("Unable to refresh seat availability");
+        }
       }
     } finally {
       setBooking(false);
@@ -186,6 +430,7 @@ export default function SeatLayout() {
   return (
     <main className="min-h-screen px-4 pb-20 pt-28 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-[1280px]">
+
         <button
           onClick={() => navigate(-1)}
           className="mb-6 flex items-center gap-2 text-sm text-white/45 transition hover:text-white"
@@ -196,6 +441,7 @@ export default function SeatLayout() {
 
         <div className="mb-7 rounded-2xl border border-white/10 bg-white/[.03] p-5 sm:p-6">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+
             <div>
               <p className="text-xs font-semibold uppercase tracking-[.22em] text-cyan-300">
                 Select your seats
@@ -222,16 +468,21 @@ export default function SeatLayout() {
 
             <div className="rounded-xl bg-cyan-300/10 px-4 py-3 text-right">
               <p className="text-xs text-white/40">Ticket price</p>
+
               <p className="text-xl font-semibold text-cyan-200">
                 {money(price)}
               </p>
             </div>
+
           </div>
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[1fr_330px]">
+
           <div className="rounded-3xl border border-white/10 bg-white/[.02] p-5 sm:p-8">
+
             <div className="mx-auto max-w-2xl">
+
               <div className="mb-2 h-2 rounded-[50%] bg-gradient-to-r from-transparent via-cyan-200/80 to-transparent blur-[1px]" />
 
               <p className="mb-10 text-center text-[10px] font-semibold tracking-[.5em] text-white/35">
@@ -245,6 +496,7 @@ export default function SeatLayout() {
                 </div>
               ) : (
                 <div className="grid grid-cols-10 gap-1.5 sm:gap-2">
+
                   {seats.map((seat, index) => {
                     const active = selected.some(
                       (item) => item.id === seat.id
@@ -257,7 +509,7 @@ export default function SeatLayout() {
                         onClick={() => choose(seat)}
                         title={
                           seat.booked
-                            ? "Booked"
+                            ? "Booked or temporarily reserved"
                             : `Seat ${label(index)}`
                         }
                         className={`
@@ -284,10 +536,12 @@ export default function SeatLayout() {
                       </button>
                     );
                   })}
+
                 </div>
               )}
 
               <div className="mt-9 flex flex-wrap justify-center gap-5 text-xs text-white/40">
+
                 <span className="flex items-center gap-2">
                   <i className="h-3 w-3 rounded bg-white/[.1]" />
                   Available
@@ -300,14 +554,17 @@ export default function SeatLayout() {
 
                 <span className="flex items-center gap-2">
                   <i className="h-3 w-3 rounded bg-red-500/75" />
-                  Booked
+                  Booked / Reserved
                 </span>
+
               </div>
             </div>
           </div>
 
           <aside className="h-fit rounded-3xl border border-white/10 bg-[#0c1017] p-6 xl:sticky xl:top-24">
+
             <div className="mb-6 flex items-center gap-3">
+
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-300/10 text-cyan-300">
                 <Ticket size={19} />
               </span>
@@ -316,17 +573,21 @@ export default function SeatLayout() {
                 <p className="text-sm font-semibold">Booking summary</p>
                 <p className="text-xs text-white/35">Up to 5 seats</p>
               </div>
+
             </div>
 
             <div className="space-y-4 text-sm">
+
               <div className="flex justify-between text-white/45">
                 <span>Selected</span>
+
                 <span className="text-white">
                   {selected.length} seat{selected.length !== 1 ? "s" : ""}
                 </span>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/[.03] p-3">
+
                 <p className="mb-2 text-[11px] uppercase tracking-wider text-white/30">
                   Seats
                 </p>
@@ -336,6 +597,7 @@ export default function SeatLayout() {
                     ? selected.map(getSeatLabel).filter(Boolean).join(", ")
                     : "No seats selected"}
                 </p>
+
               </div>
 
               <div className="flex justify-between border-t border-white/10 pt-4 text-white/45">
@@ -345,14 +607,20 @@ export default function SeatLayout() {
 
               <div className="flex items-end justify-between">
                 <span className="text-white/55">Total</span>
+
                 <span className="text-2xl font-semibold text-white">
                   {money(total)}
                 </span>
               </div>
+
             </div>
 
             <button
-              disabled={booking || selected.length === 0 || seats.length === 0}
+              disabled={
+                booking ||
+                selected.length === 0 ||
+                seats.length === 0
+              }
               onClick={book}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-35"
             >
@@ -364,15 +632,16 @@ export default function SeatLayout() {
               ) : (
                 <>
                   <LockKeyhole size={16} />
-                  Confirm booking
+                  Proceed to Payment
                 </>
               )}
             </button>
 
             <p className="mt-4 flex gap-2 text-[11px] leading-5 text-white/30">
               <Info size={14} className="mt-0.5 shrink-0" />
-              Your seat selection is locked only after the booking is successfully confirmed by the server.
+              Seats are temporarily reserved for 10 minutes while you complete payment. Booking confirmation happens only after server-side payment verification.
             </p>
+
           </aside>
         </div>
       </div>

@@ -26,10 +26,7 @@ public class Booking {
 
     // Seats included in this booking
     @ElementCollection
-    @CollectionTable(
-            name = "booking_seats",
-            joinColumns = @JoinColumn(name = "booking_id")
-    )
+    @CollectionTable(name = "booking_seats", joinColumns = @JoinColumn(name = "booking_id"))
     @Column(name = "seat_number")
     private List<String> seatNumbers = new ArrayList<>();
 
@@ -40,6 +37,19 @@ public class Booking {
     private String status;
 
     private LocalDateTime bookingDate;
+
+    // Razorpay payment information
+    @Column(unique = true, length = 100)
+    private String razorpayOrderId;
+
+    @Column(length = 100)
+    private String razorpayPaymentId;
+
+    @Column(length = 30)
+    private String paymentStatus;
+
+    // Temporary seat reservation expiry
+    private LocalDateTime reservationExpiresAt;
 
     public Booking() {
     }
@@ -114,5 +124,37 @@ public class Booking {
 
     public void setBookingDate(LocalDateTime bookingDate) {
         this.bookingDate = bookingDate;
+    }
+
+    public String getRazorpayOrderId() {
+        return razorpayOrderId;
+    }
+
+    public void setRazorpayOrderId(String razorpayOrderId) {
+        this.razorpayOrderId = razorpayOrderId;
+    }
+
+    public String getRazorpayPaymentId() {
+        return razorpayPaymentId;
+    }
+
+    public void setRazorpayPaymentId(String razorpayPaymentId) {
+        this.razorpayPaymentId = razorpayPaymentId;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public LocalDateTime getReservationExpiresAt() {
+        return reservationExpiresAt;
+    }
+
+    public void setReservationExpiresAt(LocalDateTime reservationExpiresAt) {
+        this.reservationExpiresAt = reservationExpiresAt;
     }
 }

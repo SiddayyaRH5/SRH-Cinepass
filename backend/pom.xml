@@ -134,6 +134,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+    <groupId>com.razorpay</groupId>
+    <artifactId>razorpay-java</artifactId>
+    <version>1.4.10</version>
+</dependency>
+
         <!-- ================= SPRING CACHE & CAFFEINE ================= -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
