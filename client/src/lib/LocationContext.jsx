@@ -21,7 +21,7 @@ export const LocationProvider = ({ children }) => {
 
       return JSON.parse(savedLocation);
 
-    } catch (error) {
+    } catch {
 
       // Remove old-format location data
       localStorage.removeItem('cinepassLocation');
@@ -60,6 +60,8 @@ export const LocationProvider = ({ children }) => {
   );
 };
 
+// The hook intentionally lives with its provider so consumers import one module.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLocationContext = () => {
 
   const context = useContext(LocationContext);

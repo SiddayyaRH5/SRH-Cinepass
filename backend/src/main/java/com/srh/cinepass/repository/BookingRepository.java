@@ -3,7 +3,12 @@ package com.srh.cinepass.repository;
 
 import com.srh.cinepass.entity.Booking;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,8 +26,46 @@ public interface BookingRepository
     // Find a booking using its Razorpay order ID.
     Optional<Booking> findByRazorpayOrderId(String razorpayOrderId);
 
+    /*
+     * Payment confirmation callbacks can be retried. Locking the booking row
+     * makes confirmation (and the one-ticket-per-booking insert) serialized.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.razorpayOrderId = :orderId")
+    Optional<Booking> findByRazorpayOrderIdForUpdate(
+            @Param("orderId") String orderId);
+
+    /*
+     * Cancellation and order attachment must serialize with webhook/browser
+     * confirmation on the same booking row. Without this lock a stale
+     * cancellation can overwrite a captured payment with CANCELLED/FAILED.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :id")
+    Optional<Booking> findByIdForUpdate(@Param("id") Long id);
+
     // Find pending bookings whose temporary reservations have expired.
     List<Booking> findByStatusAndReservationExpiresAtBefore(
             String status,
             LocalDateTime expiryTime);
+
+    // Captured payments that could not be confirmed automatically.
+    List<Booking> findByPaymentRecoveryStatusOrderByBookingDateDesc(
+            String paymentRecoveryStatus);
+
+    /*
+     * Existing confirmed bookings (created before this feature) need a ticket
+     * too. Backfill is idempotent and only selects bookings without a ticket.
+     */
+    @Query("""
+            SELECT b.id
+            FROM Booking b
+            WHERE b.status = 'CONFIRMED'
+              AND b.paymentStatus = 'PAID'
+              AND NOT EXISTS (
+                    SELECT t.id FROM Ticket t WHERE t.booking = b
+              )
+            ORDER BY b.id ASC
+            """)
+    List<Long> findConfirmedBookingIdsWithoutTicket();
 }

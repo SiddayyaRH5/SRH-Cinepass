@@ -2,6 +2,7 @@
 package com.srh.cinepass.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.srh.cinepass.util.BusinessTime;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -45,8 +46,26 @@ public class Seat {
     // Existing frontend continues receiving "booked".
     // An active temporary reservation also appears unavailable.
     public boolean isBooked() {
+        return isBookedAt(BusinessTime.now());
+    }
+
+    /**
+     * Availability at an explicit business time. Service-layer callers pass
+     * the injected IST clock so tests and recovery logic are deterministic.
+     */
+    public boolean isBookedAt(LocalDateTime now) {
         return booked || (reservedUntil != null &&
-                reservedUntil.isAfter(LocalDateTime.now()));
+                now != null &&
+                reservedUntil.isAfter(now));
+    }
+
+    /**
+     * True only when the seat has been permanently assigned to a confirmed
+     * booking. Unlike {@link #isBooked()}, this does not include an active
+     * temporary reservation.
+     */
+    public boolean isPermanentlyBooked() {
+        return booked;
     }
 
     public void setBooked(boolean booked) {

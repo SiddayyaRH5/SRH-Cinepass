@@ -16,6 +16,8 @@ import Home from "./pages/Home";
 import Movies from "./pages/Movies";
 import MovieDetails from "./pages/MovieDetails";
 import MyBookings from "./pages/MyBookings";
+import Ticket from "./pages/Ticket";
+import StaffScanner from "./pages/Staff/StaffScanner";
 import SeatLayout from "./pages/SeatLayout";
 import Favorite from "./pages/Favorite";
 import Login from "./pages/Login";
@@ -36,6 +38,7 @@ import TheatreVerification from "./pages/TheatreOwner/TheatreVerification";
 import OwnerDashboard from "./pages/TheatreOwner/OwnerDashboard";
 
 import TheatreVerificationAdmin from "./pages/Admin/TheatreVerificationAdmin";
+import StaffManagement from "./pages/Admin/StaffManagement";
 
 import { LocationProvider } from "./lib/LocationContext";
 import { useAuth } from "./context/AuthContext";
@@ -108,6 +111,35 @@ function OwnerRoute({ children }) {
 
 
 /* ============================================================
+   PROTECTED STAFF ROUTE
+   The backend independently enforces ROLE_STAFF/ROLE_ADMIN on
+   every verification request; this guard is only for navigation.
+============================================================ */
+
+function StaffRoute({ children }) {
+
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
+  }
+
+  if (user?.role !== "STAFF" && user?.role !== "ADMIN") {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+
+/* ============================================================
    MAIN SHELL
 ============================================================ */
 
@@ -121,12 +153,15 @@ function Shell() {
   const owner =
     pathname.startsWith("/owner");
 
+  const staff =
+    pathname.startsWith("/staff");
+
   return (
     <>
 
       {/* CUSTOMER NAVBAR */}
 
-      {!admin && !owner && <Navbar />}
+      {!admin && !owner && !staff && <Navbar />}
 
 
       <Routes>
@@ -229,6 +264,30 @@ function Shell() {
           }
         />
 
+        <Route
+          path="/tickets/:ticketId"
+          element={
+            <ProtectedRoute>
+              <Ticket />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* =====================================================
+            STAFF TICKET SCANNER
+            STAFF / ADMIN ONLY
+        ===================================================== */}
+
+        <Route
+          path="/staff/scanner"
+          element={
+            <StaffRoute>
+              <StaffScanner />
+            </StaffRoute>
+          }
+        />
+
 
         {/* =====================================================
             ADMIN PAGES
@@ -272,6 +331,11 @@ function Shell() {
           <Route
             path="add-shows"
             element={<AddShows />}
+          />
+
+          <Route
+            path="staff"
+            element={<StaffManagement />}
           />
 
         </Route>
@@ -335,7 +399,7 @@ function Shell() {
 
       {/* CUSTOMER FOOTER */}
 
-      {!admin && !owner && <Footer />}
+      {!admin && !owner && !staff && <Footer />}
 
     </>
   );

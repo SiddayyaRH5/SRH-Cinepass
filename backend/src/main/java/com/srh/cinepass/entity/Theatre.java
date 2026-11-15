@@ -1,5 +1,6 @@
 package com.srh.cinepass.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -75,6 +76,11 @@ public class Theatre {
         this.location = location;
     }
 
+    /*
+     * The owner account is an internal association. Public theatre browsing
+     * must not expose the owner's name, email or role.
+     */
+    @JsonIgnore
     public User getOwner() {
         return owner;
     }

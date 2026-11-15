@@ -5,6 +5,7 @@ import com.srh.cinepass.entity.*;
 import com.srh.cinepass.repository.*;
 import com.srh.cinepass.service.MovieService;
 import com.srh.cinepass.service.TheatreService;
+import com.srh.cinepass.util.BusinessTime;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -357,7 +358,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             List<Movie> movies,
             List<Theatre> theatres) {
 
-        LocalDate firstDate = LocalDate.now().plusDays(1);
+        LocalDate firstDate = BusinessTime.today().plusDays(1);
 
         LocalTime[] timings = {
             LocalTime.of(10, 0),

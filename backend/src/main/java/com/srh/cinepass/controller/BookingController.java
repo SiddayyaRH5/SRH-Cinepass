@@ -154,10 +154,24 @@ public class BookingController {
 
             Map<String, Object> response = new HashMap<>();
 
-            response.put("message", "Payment successful. Booking confirmed.");
+            boolean manualReview = "PAYMENT_REVIEW".equals(confirmedBooking.getStatus());
+
+            response.put("message", manualReview
+                    ? "Payment captured. The seats could not be confirmed automatically, so the booking is under manual review."
+                    : "Payment successful. Booking confirmed.");
             response.put("bookingId", confirmedBooking.getId());
             response.put("status", confirmedBooking.getStatus());
             response.put("paymentStatus", confirmedBooking.getPaymentStatus());
+
+            if (confirmedBooking.getPaymentRecoveryStatus() != null) {
+                response.put("paymentRecoveryStatus",
+                        confirmedBooking.getPaymentRecoveryStatus());
+            }
+
+            if (confirmedBooking.getPaymentRecoveryReason() != null) {
+                response.put("paymentRecoveryReason",
+                        confirmedBooking.getPaymentRecoveryReason());
+            }
 
             return ResponseEntity.ok(response);
 
@@ -185,10 +199,25 @@ public class BookingController {
                         .body(Map.of("message", "You cannot cancel another user's booking"));
             }
 
-            bookingService.cancelPendingBooking(bookingId);
+            Booking cancelled = bookingService.cancelPendingBooking(bookingId);
 
-            return ResponseEntity.ok(
-                    Map.of("message", "Pending booking cancelled"));
+            if ("PAYMENT_REVIEW".equals(cancelled.getStatus())) {
+                return ResponseEntity.ok(Map.of(
+                        "status", cancelled.getStatus(),
+                        "message",
+                        "A payment was already captured for this booking. "
+                                + "The booking was not cancelled and has been sent for manual review."));
+            }
+
+            if ("CONFIRMED".equals(cancelled.getStatus())) {
+                return ResponseEntity.ok(Map.of(
+                        "status", cancelled.getStatus(),
+                        "message", "This booking is already confirmed and cannot be cancelled here."));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "status", cancelled.getStatus(),
+                    "message", "Pending booking cancelled"));
 
         } catch (Exception e) {
             return ResponseEntity.badRequest()

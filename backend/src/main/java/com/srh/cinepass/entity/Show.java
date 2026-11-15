@@ -1,5 +1,6 @@
 package com.srh.cinepass.entity;
 
+import com.srh.cinepass.util.BusinessTime;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,7 +43,7 @@ public class Show {
         return showTime != null ? showTime.toLocalTime() : null; 
     }
     public void setShowTime(LocalTime time) { 
-        this.showTime = time != null ? LocalDateTime.of(this.showTime != null ? this.showTime.toLocalDate() : LocalDate.now(), time) : null; 
+        this.showTime = time != null ? LocalDateTime.of(this.showTime != null ? this.showTime.toLocalDate() : BusinessTime.today(), time) : null;
     }
     public void setShowTime(LocalDateTime dateTime) { 
         this.showTime = dateTime; 

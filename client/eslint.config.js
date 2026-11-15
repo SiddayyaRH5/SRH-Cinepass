@@ -3,12 +3,14 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
-import { defineConfig } from 'vite'
-
 
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores([
+    'dist',
+    '**/*.backup.jsx',
+    '**/*.jsx.backup',
+  ]),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -26,7 +28,13 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': [
+        'error',
+        {
+          varsIgnorePattern: '^[A-Z_]',
+          argsIgnorePattern: '^[A-Z_]',
+        },
+      ],
     },
   },
 ])

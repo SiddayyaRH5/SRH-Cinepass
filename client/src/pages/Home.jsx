@@ -20,7 +20,7 @@ export default function Home() {
   const { selectedLocation } = useLocationContext();
 
   const [movies, setMovies] = React.useState([]);
-  const [shows, setShows] = React.useState([]);
+  const [, setShows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [hero, setHero] = React.useState(null);
 

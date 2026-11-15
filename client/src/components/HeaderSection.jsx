@@ -1,6 +1,5 @@
-import React, { use } from 'react'
+import React from 'react'
 import { CalendarIcon, ClockIcon, ArrowRight } from 'lucide-react'
-import { assets } from '../assets/assets'
 import { useNavigate } from 'react-router-dom'
 
 const HeaderSection = () => {

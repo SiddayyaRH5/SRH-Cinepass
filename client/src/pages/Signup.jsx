@@ -16,7 +16,7 @@ import {
 
 import toast from "react-hot-toast";
 
-import { apiFetch, API_BASE } from "../lib/api";
+import { apiFetch } from "../lib/api";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function Signup() {
   const [loading, setLoading] =
     React.useState(false);
 
-  const [googleLoading, setGoogleLoading] =
+  const [googleLoading] =
     React.useState(false);
 
   // ============================================================
@@ -132,63 +132,6 @@ export default function Signup() {
 
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ============================================================
-  // GOOGLE SIGNUP
-  // ============================================================
-
-  const handleGoogleSignup = () => {
-    try {
-      setGoogleLoading(true);
-
-      
-
-      /*
-       * Google authentication is handled
-       * completely by Spring Security.
-       *
-       * IMPORTANT:
-       * Do NOT use localhost here.
-       *
-       * API_BASE comes from:
-       *
-       * VITE_API_BASE_URL
-       *
-       * Production:
-       * https://srh-cinepass.onrender.com
-       *
-       * Local:
-       * http://localhost:8080
-       */
-
-      const backendUrl =
-        API_BASE ||
-        "http://localhost:8080";
-
-      const googleUrl =
-        `${backendUrl}/oauth2/authorization/google`;
-
-      console.log(
-        "Google OAuth URL:",
-        googleUrl
-      );
-
-      window.location.href =
-        googleUrl;
-
-    } catch (error) {
-      console.error(
-        "Google signup error:",
-        error
-      );
-
-      setGoogleLoading(false);
-
-      toast.error(
-        "Unable to continue with Google"
-      );
     }
   };
 

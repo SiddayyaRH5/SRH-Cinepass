@@ -1,9 +1,12 @@
 package com.srh.cinepass.controller;
 
+import com.srh.cinepass.dto.TheatreResponse;
 import com.srh.cinepass.entity.Theatre;
 import com.srh.cinepass.entity.User;
+import com.srh.cinepass.exception.TicketAccessDeniedException;
 import com.srh.cinepass.service.TheatreService;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -21,25 +24,32 @@ public class TheatreController {
     }
 
     @GetMapping
-    public List<Theatre> getAllTheatres() {
-        return theatreService.getAllTheatres();
+    public List<TheatreResponse> getAllTheatres() {
+        return theatreService.getAllTheatres()
+                .stream()
+                .map(TheatreResponse::from)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Theatre> getTheatreById(
+    public ResponseEntity<TheatreResponse> getTheatreById(
             @PathVariable Long id) {
 
         return theatreService
                 .getTheatreById(id)
+                .map(TheatreResponse::from)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/location/{locationId}")
-    public List<Theatre> getTheatresByLocation(
+    public List<TheatreResponse> getTheatresByLocation(
             @PathVariable Long locationId) {
 
-        return theatreService.getTheatresByLocation(locationId);
+        return theatreService.getTheatresByLocation(locationId)
+                .stream()
+                .map(TheatreResponse::from)
+                .toList();
     }
 
     /*
@@ -54,12 +64,19 @@ public class TheatreController {
             User user =
                     (User) authentication.getPrincipal();
 
-            List<Theatre> theatres =
+            List<TheatreResponse> theatres =
                     theatreService.getTheatresByOwner(
                             user.getId()
-                    );
+                    ).stream()
+                    .map(TheatreResponse::from)
+                    .toList();
 
             return ResponseEntity.ok(theatres);
+
+        } catch (TicketAccessDeniedException e) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
 
         } catch (Exception e) {
 
@@ -80,11 +97,18 @@ public class TheatreController {
                     (User) authentication.getPrincipal();
 
             return ResponseEntity.ok(
-                    theatreService.addTheatre(
-                            theatre,
-                            user
+                    TheatreResponse.from(
+                            theatreService.addTheatre(
+                                    theatre,
+                                    user
+                            )
                     )
             );
+
+        } catch (TicketAccessDeniedException e) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
 
         } catch (RuntimeException e) {
 
@@ -106,12 +130,19 @@ public class TheatreController {
                     (User) authentication.getPrincipal();
 
             return ResponseEntity.ok(
-                    theatreService.updateTheatre(
-                            id,
-                            theatreDetails,
-                            user
+                    TheatreResponse.from(
+                            theatreService.updateTheatre(
+                                    id,
+                                    theatreDetails,
+                                    user
+                            )
                     )
             );
+
+        } catch (TicketAccessDeniedException e) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
 
         } catch (RuntimeException e) {
 
@@ -139,6 +170,11 @@ public class TheatreController {
             return ResponseEntity
                     .noContent()
                     .build();
+
+        } catch (TicketAccessDeniedException e) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
 
         } catch (RuntimeException e) {
 

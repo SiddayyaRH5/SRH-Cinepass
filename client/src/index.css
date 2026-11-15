@@ -80,3 +80,117 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* ============================================================
+   PRINTABLE DIGITAL TICKET
+   Only .print-area is printed. Controls, navigation and the
+   footer are excluded so the browser's "Save as PDF" output is
+   a clean, single ticket with the same QR image.
+============================================================ */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    min-width: 0 !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+
+  .print-area {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: 186mm !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    color: #111827 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Keep the ticket as a compact two-column pass instead of letting the
+     responsive single-column layout spill onto a second page. */
+  .print-area > .grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 62mm !important;
+  }
+
+  .print-area .ticket-panel {
+    padding: 6mm !important;
+    border-top: 0 !important;
+  }
+
+  .print-area aside.ticket-panel {
+    border-left: 1px dashed #9ca3af !important;
+  }
+
+  .print-area * {
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+  }
+
+  .print-area .ticket-brand {
+    background: #0b1017 !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+  }
+
+  .print-area .ticket-brand,
+  .print-area .ticket-brand * {
+    color: #ffffff !important;
+  }
+
+  .print-area .ticket-accent,
+  .print-area .ticket-accent * {
+    color: #0e7490 !important;
+  }
+
+  .print-area .ticket-muted {
+    color: #374151 !important;
+  }
+
+  .print-area .ticket-label {
+    color: #6b7280 !important;
+  }
+
+  .print-area .ticket-qr {
+    width: 190px !important;
+    height: 190px !important;
+    max-width: 100% !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-area .ticket-receipt-note {
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .print-area img {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

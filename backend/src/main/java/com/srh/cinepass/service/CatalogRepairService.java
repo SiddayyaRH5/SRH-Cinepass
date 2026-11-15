@@ -6,6 +6,7 @@ import com.srh.cinepass.entity.Theatre;
 import com.srh.cinepass.repository.MovieRepository;
 import com.srh.cinepass.repository.ShowRepository;
 import com.srh.cinepass.repository.TheatreRepository;
+import com.srh.cinepass.util.BusinessTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,7 +92,7 @@ public class CatalogRepairService {
             }
 
             LocalDate releaseDate = movie.getReleaseDate();
-            LocalDate firstDate = LocalDate.now().plusDays(1);
+            LocalDate firstDate = BusinessTime.today().plusDays(1);
 
             if (releaseDate != null && releaseDate.isAfter(firstDate)) {
                 firstDate = releaseDate;

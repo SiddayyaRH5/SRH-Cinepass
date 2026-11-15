@@ -1,5 +1,7 @@
 package com.srh.cinepass.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.srh.cinepass.util.BusinessTime;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -75,7 +77,7 @@ public class TheatreVerification {
     @PrePersist
     public void onCreate() {
         if (submittedAt == null) {
-            submittedAt = LocalDateTime.now();
+            submittedAt = BusinessTime.now();
         }
         if (status == null) {
             status = "PENDING";
@@ -84,6 +86,7 @@ public class TheatreVerification {
 
     public Long getId() { return id; }
 
+    @JsonIgnore
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
@@ -145,6 +148,8 @@ public class TheatreVerification {
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 
     public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+
     public LocalDateTime getReviewedAt() { return reviewedAt; }
 
     public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }

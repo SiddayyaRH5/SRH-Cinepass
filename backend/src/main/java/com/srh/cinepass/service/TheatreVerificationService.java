@@ -12,6 +12,7 @@ import com.srh.cinepass.repository.TheatreVerificationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,15 +22,18 @@ public class TheatreVerificationService {
     private final TheatreVerificationRepository verificationRepository;
     private final LocationRepository locationRepository;
     private final TheatreRepository theatreRepository;
+    private final Clock clock;
 
     public TheatreVerificationService(
             TheatreVerificationRepository verificationRepository,
             LocationRepository locationRepository,
-            TheatreRepository theatreRepository) {
+            TheatreRepository theatreRepository,
+            Clock clock) {
 
         this.verificationRepository = verificationRepository;
         this.locationRepository = locationRepository;
         this.theatreRepository = theatreRepository;
+        this.clock = clock;
     }
 
     // =========================================================
@@ -64,6 +68,10 @@ public class TheatreVerificationService {
                                 new RuntimeException("Invalid location"));
 
         verification.setUser(user);
+
+        if (verification.getSubmittedAt() == null) {
+            verification.setSubmittedAt(LocalDateTime.now(clock));
+        }
 
         verification.setTheatreName(
                 request.getTheatreName().trim());
@@ -235,7 +243,7 @@ public class TheatreVerificationService {
         verification.setStatus("APPROVED");
 
         verification.setReviewedAt(
-                LocalDateTime.now());
+                LocalDateTime.now(clock));
 
         verification.setRejectionReason(null);
 
@@ -273,7 +281,7 @@ public class TheatreVerificationService {
                 reason.trim());
 
         verification.setReviewedAt(
-                LocalDateTime.now());
+                LocalDateTime.now(clock));
 
         return verificationRepository.save(
                 verification);

@@ -8,6 +8,7 @@ import {
   House,
   LogOut,
   Menu,
+  ScanLine,
   Search,
   Ticket,
   User,
@@ -467,6 +468,31 @@ export default function Navbar() {
                     </button>
                   )}
 
+                  {(user?.role === "STAFF" ||
+                    user?.role === "ADMIN") && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate("/staff/scanner")
+                      }
+                      className="
+                        flex
+                        w-full
+                        items-center
+                        gap-3
+                        px-4
+                        py-3.5
+                        text-sm
+                        text-white/75
+                        hover:bg-white/[.06]
+                        hover:text-white
+                      "
+                    >
+                      <ScanLine size={17} />
+                      Ticket Scanner
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -641,11 +667,13 @@ export default function Navbar() {
                   `
                 }
               >
-                <Icon
-                  size={18}
-                  strokeWidth={1.8}
-                  className="shrink-0"
-                />
+                {Icon ? (
+                  <Icon
+                    size={18}
+                    strokeWidth={1.8}
+                    className="shrink-0"
+                  />
+                ) : null}
 
                 <span>{label}</span>
               </NavLink>

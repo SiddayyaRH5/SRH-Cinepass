@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  QrCode,
   Users,
   IndianRupee,
   Ticket,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getMyBookings } from "../lib/api";
+import { getMyTickets } from "../lib/tickets";
+import { seatLabels } from "../lib/seatLabels";
 import {
   formatDate,
   formatDateTime,
@@ -20,37 +23,26 @@ import {
 import { useAuth } from "../context/AuthContext";
 
 /* ============================================================
-   CONVERT BACKEND SEAT NUMBER TO VISUAL SEAT LABEL
-
-   Backend:
-   S1  S2  S3 ... S10
-   S11 S12 ... S20
-   S21 S22 ... S30
-
-   UI:
-   A1  A2  A3 ... A10
-   B1  B2  B3 ... B10
-   C1  C2  C3 ... C10
-
-   Examples:
-   S7  -> A7
-   S28 -> C8
-   S77 -> H7
+   TICKET STATUS LABELS
 ============================================================ */
 
-const seatLabel = (seatNumber) => {
-  const number = Number(
-    String(seatNumber).replace(/^S/i, "")
-  );
-
-  if (!Number.isInteger(number) || number < 1) {
-    return seatNumber;
-  }
-
-  const row = Math.floor((number - 1) / 10);
-  const seat = ((number - 1) % 10) + 1;
-
-  return `${String.fromCharCode(65 + row)}${seat}`;
+const TICKET_STATUS = {
+  BOOKED: {
+    label: "Valid for entry",
+    className: "bg-green-400/10 text-green-300",
+  },
+  USED: {
+    label: "Admitted",
+    className: "bg-white/10 text-white/55",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    className: "bg-red-400/10 text-red-300",
+  },
+  EXPIRED: {
+    label: "Expired",
+    className: "bg-amber-400/10 text-amber-200",
+  },
 };
 
 export default function MyBookings() {
@@ -58,10 +50,11 @@ export default function MyBookings() {
   const { isAuthenticated } = useAuth();
 
   const [bookings, setBookings] = React.useState([]);
+  const [ticketsByBooking, setTicketsByBooking] = React.useState({});
   const [loading, setLoading] = React.useState(true);
 
   /* ==========================================================
-     LOAD USER BOOKINGS
+     LOAD USER BOOKINGS + TICKETS
   ========================================================== */
 
   React.useEffect(() => {
@@ -70,20 +63,48 @@ export default function MyBookings() {
       return;
     }
 
-    getMyBookings()
-      .then((data) => {
-        setBookings(
-          Array.isArray(data) ? data : []
-        );
-      })
-      .catch((e) => {
-        toast.error(
-          e.message || "Unable to load bookings"
-        );
+    let active = true;
+
+    Promise.allSettled([getMyBookings(), getMyTickets()])
+      .then(([bookingsResult, ticketsResult]) => {
+        if (!active) return;
+
+        if (bookingsResult.status === "fulfilled") {
+          setBookings(
+            Array.isArray(bookingsResult.value)
+              ? bookingsResult.value
+              : []
+          );
+        } else {
+          toast.error(
+            bookingsResult.reason?.message ||
+              "Unable to load bookings"
+          );
+        }
+
+        if (ticketsResult.status === "fulfilled") {
+          const tickets = Array.isArray(ticketsResult.value)
+            ? ticketsResult.value
+            : [];
+
+          setTicketsByBooking(
+            tickets.reduce((map, ticket) => {
+              if (ticket?.bookingId != null) {
+                map[ticket.bookingId] = ticket;
+              }
+
+              return map;
+            }, {})
+          );
+        }
       })
       .finally(() => {
-        setLoading(false);
+        if (active) setLoading(false);
       });
+
+    return () => {
+      active = false;
+    };
   }, [isAuthenticated]);
 
   /* ==========================================================
@@ -243,6 +264,7 @@ export default function MyBookings() {
               <Booking
                 key={booking.id}
                 booking={booking}
+                ticket={ticketsByBooking[booking.id]}
               />
             ))}
           </div>
@@ -302,7 +324,9 @@ export default function MyBookings() {
    BOOKING CARD
 ============================================================ */
 
-function Booking({ booking: b }) {
+function Booking({ booking: b, ticket }) {
+  const navigate = useNavigate();
+
   const s = b.show || {};
   const m = s.movie || {};
   const t = s.theatre || {};
@@ -311,6 +335,15 @@ function Booking({ booking: b }) {
   const seats = Array.isArray(b.seatNumbers)
     ? b.seatNumbers
     : [];
+
+  const cancelled =
+    String(b.status || "").toUpperCase() === "CANCELLED";
+
+  const ticketStatus = cancelled
+    ? TICKET_STATUS.CANCELLED
+    : TICKET_STATUS[ticket?.status] || null;
+
+  const canViewTicket = Boolean(ticket?.ticketId);
 
   return (
     <article
@@ -391,26 +424,27 @@ function Booking({ booking: b }) {
 
               {/* STATUS */}
 
-              <span
-                className="
-                  inline-flex
-                  items-center
-                  gap-1.5
-                  rounded-full
-                  bg-green-400/10
-                  px-2.5
-                  py-1
-                  text-[10px]
-                  font-semibold
-                  uppercase
-                  tracking-wider
-                  text-green-300
-                "
-              >
-                <CheckCircle2 size={12} />
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`
+                    inline-flex
+                    items-center
+                    gap-1.5
+                    rounded-full
+                    px-2.5
+                    py-1
+                    text-[10px]
+                    font-semibold
+                    uppercase
+                    tracking-wider
+                    ${ticketStatus?.className || "bg-green-400/10 text-green-300"}
+                  `}
+                >
+                  <CheckCircle2 size={12} />
 
-                {b.status || "CONFIRMED"}
-              </span>
+                  {ticketStatus?.label || b.status || "CONFIRMED"}
+                </span>
+              </div>
 
               {/* MOVIE TITLE */}
 
@@ -501,9 +535,7 @@ function Booking({ booking: b }) {
               label="Seats"
               value={
                 seats.length
-                  ? seats
-                      .map(seatLabel)
-                      .join(", ")
+                  ? seatLabels(seats).join(", ")
                   : "—"
               }
             />
@@ -535,24 +567,52 @@ function Booking({ booking: b }) {
               {formatDateTime(b.bookingDate)}
             </p>
 
-            {/* TOTAL */}
+            {/* ACTIONS + TOTAL */}
 
-            <p
-              className="
-                flex
-                items-center
-                gap-1
-                text-xl
-                font-semibold
-                text-cyan-200
-              "
-            >
-              <IndianRupee size={18} />
+            <div className="flex flex-wrap items-center gap-4">
+              {canViewTicket && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(`/tickets/${ticket.ticketId}`)
+                  }
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                    rounded-full
+                    bg-cyan-300
+                    px-5
+                    py-2.5
+                    text-xs
+                    font-semibold
+                    text-slate-950
+                    transition
+                    hover:bg-cyan-200
+                  "
+                >
+                  <QrCode size={15} />
+                  View Ticket
+                </button>
+              )}
 
-              {Number(
-                b.totalAmount || 0
-              ).toLocaleString("en-IN")}
-            </p>
+              <p
+                className="
+                  flex
+                  items-center
+                  gap-1
+                  text-xl
+                  font-semibold
+                  text-cyan-200
+                "
+              >
+                <IndianRupee size={18} />
+
+                {Number(
+                  b.totalAmount || 0
+                ).toLocaleString("en-IN")}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -572,14 +632,16 @@ function Info({
   return (
     <div className="flex gap-3">
 
-      <Icon
-        size={17}
-        className="
-          mt-0.5
-          shrink-0
-          text-cyan-300
-        "
-      />
+      {Icon ? (
+        <Icon
+          size={17}
+          className="
+            mt-0.5
+            shrink-0
+            text-cyan-300
+          "
+        />
+      ) : null}
 
       <div className="min-w-0">
 

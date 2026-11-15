@@ -3,6 +3,7 @@ package com.srh.cinepass.service;
 import com.srh.cinepass.entity.Location;
 import com.srh.cinepass.entity.Theatre;
 import com.srh.cinepass.entity.User;
+import com.srh.cinepass.exception.TicketAccessDeniedException;
 import com.srh.cinepass.repository.LocationRepository;
 import com.srh.cinepass.repository.TheatreRepository;
 
@@ -16,13 +17,16 @@ public class TheatreService {
 
     private final TheatreRepository theatreRepository;
     private final LocationRepository locationRepository;
+    private final OwnerAuthorizationService ownerAuthorizationService;
 
     public TheatreService(
             TheatreRepository theatreRepository,
-            LocationRepository locationRepository) {
+            LocationRepository locationRepository,
+            OwnerAuthorizationService ownerAuthorizationService) {
 
         this.theatreRepository = theatreRepository;
         this.locationRepository = locationRepository;
+        this.ownerAuthorizationService = ownerAuthorizationService;
     }
 
     // =========================================
@@ -59,6 +63,15 @@ public class TheatreService {
     public Theatre addTheatre(
             Theatre theatre,
             User loggedInUser) {
+
+        boolean admin = isAdmin(loggedInUser);
+        boolean approvedOwner = isApprovedTheatreOwner(loggedInUser);
+
+        if (!admin && !approvedOwner) {
+            throw new TicketAccessDeniedException(
+                "Only administrators or approved theatre owners can create theatres"
+            );
+        }
 
         if (theatre.getName() == null ||
             theatre.getName().isBlank()) {
@@ -118,21 +131,10 @@ public class TheatreService {
         theatre.setLocation(location);
 
         /*
-         * ADMIN-created theatres remain platform-owned.
-         * THEATRE_OWNER-created theatres are automatically
-         * assigned to that owner.
+         * ADMIN-created theatres remain platform-owned; an approved owner's
+         * theatre is assigned to that owner.
          */
-        if (loggedInUser != null &&
-            "THEATRE_OWNER".equalsIgnoreCase(
-                loggedInUser.getRole()
-            )) {
-
-            theatre.setOwner(loggedInUser);
-
-        } else {
-
-            theatre.setOwner(null);
-        }
+        theatre.setOwner(admin ? null : loggedInUser);
 
         return theatreRepository.save(theatre);
     }
@@ -157,21 +159,10 @@ public class TheatreService {
                     );
 
         /*
-         * Theatre owners can modify only their own theatre.
+         * Administrators may modify any theatre. An approved theatre owner
+         * may modify only the theatre assigned to that owner.
          */
-        if ("THEATRE_OWNER".equalsIgnoreCase(
-                loggedInUser.getRole())) {
-
-            if (theatre.getOwner() == null ||
-                !theatre.getOwner()
-                        .getId()
-                        .equals(loggedInUser.getId())) {
-
-                throw new RuntimeException(
-                    "You can only manage your own theatre"
-                );
-            }
-        }
+        requireTheatreManagementPermission(loggedInUser, theatre);
 
         if (theatreDetails.getName() == null ||
             theatreDetails.getName().isBlank()) {
@@ -259,22 +250,47 @@ public class TheatreService {
                     );
 
         /*
-         * Theatre owners can delete only their own theatre.
+         * Administrators may delete any theatre. An approved theatre owner
+         * may delete only the theatre assigned to that owner.
          */
-        if ("THEATRE_OWNER".equalsIgnoreCase(
-                loggedInUser.getRole())) {
-
-            if (theatre.getOwner() == null ||
-                !theatre.getOwner()
-                        .getId()
-                        .equals(loggedInUser.getId())) {
-
-                throw new RuntimeException(
-                    "You can only manage your own theatre"
-                );
-            }
-        }
+        requireTheatreManagementPermission(loggedInUser, theatre);
 
         theatreRepository.delete(theatre);
+    }
+
+    private boolean isAdmin(User user) {
+
+        return user != null
+                && "ADMIN".equalsIgnoreCase(user.getRole());
+    }
+
+    private boolean isApprovedTheatreOwner(User user) {
+
+        return user != null
+                && "THEATRE_OWNER".equalsIgnoreCase(user.getRole())
+                && ownerAuthorizationService.isApprovedOwner(user.getId());
+    }
+
+    private void requireTheatreManagementPermission(
+            User loggedInUser,
+            Theatre theatre) {
+
+        if (isAdmin(loggedInUser)) {
+            return;
+        }
+
+        if (!isApprovedTheatreOwner(loggedInUser)) {
+            throw new TicketAccessDeniedException(
+                "Only administrators or approved theatre owners can manage theatres"
+            );
+        }
+
+        if (theatre.getOwner() == null
+                || !theatre.getOwner().getId().equals(loggedInUser.getId())) {
+
+            throw new TicketAccessDeniedException(
+                "You can only manage your own theatre"
+            );
+        }
     }
 }

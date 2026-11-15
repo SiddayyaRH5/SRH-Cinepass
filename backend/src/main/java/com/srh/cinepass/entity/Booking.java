@@ -51,6 +51,20 @@ public class Booking {
     // Temporary seat reservation expiry
     private LocalDateTime reservationExpiresAt;
 
+    /*
+     * Explicit state for a captured payment that could not be confirmed
+     * automatically (for example because the seats were resold). This keeps
+     * the money visible to administrators instead of silently marking the
+     * payment FAILED.
+     */
+    @Column(length = 30)
+    private String paymentRecoveryStatus;
+
+    @Column(length = 500)
+    private String paymentRecoveryReason;
+
+    private LocalDateTime paymentRecoveryAt;
+
     public Booking() {
     }
 
@@ -156,5 +170,29 @@ public class Booking {
 
     public void setReservationExpiresAt(LocalDateTime reservationExpiresAt) {
         this.reservationExpiresAt = reservationExpiresAt;
+    }
+
+    public String getPaymentRecoveryStatus() {
+        return paymentRecoveryStatus;
+    }
+
+    public void setPaymentRecoveryStatus(String paymentRecoveryStatus) {
+        this.paymentRecoveryStatus = paymentRecoveryStatus;
+    }
+
+    public String getPaymentRecoveryReason() {
+        return paymentRecoveryReason;
+    }
+
+    public void setPaymentRecoveryReason(String paymentRecoveryReason) {
+        this.paymentRecoveryReason = paymentRecoveryReason;
+    }
+
+    public LocalDateTime getPaymentRecoveryAt() {
+        return paymentRecoveryAt;
+    }
+
+    public void setPaymentRecoveryAt(LocalDateTime paymentRecoveryAt) {
+        this.paymentRecoveryAt = paymentRecoveryAt;
     }
 }

@@ -7,6 +7,7 @@ import {
   CalendarPlus,
   BarChart3,
   Ticket,
+  ScanLine,
   Settings,
 } from "lucide-react";
 
@@ -41,6 +42,11 @@ const items = [
     to: "/admin/list-bookings",
     label: "Bookings",
     icon: Ticket,
+  },
+  {
+    to: "/admin/staff",
+    label: "Staff access",
+    icon: ScanLine,
   },
 ];
 
@@ -130,10 +136,12 @@ export default function AdminSidebar() {
                   group-hover:bg-white/[.04]
                 "
               >
-                <Icon
-                  size={17}
-                  strokeWidth={1.8}
-                />
+                {Icon ? (
+                  <Icon
+                    size={17}
+                    strokeWidth={1.8}
+                  />
+                ) : null}
               </span>
 
               <span>{label}</span>
