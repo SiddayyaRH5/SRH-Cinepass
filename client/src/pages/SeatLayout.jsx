@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import { apiFetch, getSeats, getShow } from "../lib/api";
+import { apiFetch, getSeats, getShow, getShowAvailability } from "../lib/api";
 import { formatDate, formatTime, money } from "../lib/formatters";
 import Loading from "../components/Loading";
 import { useAuth } from "../context/AuthContext";
@@ -63,15 +63,18 @@ export default function SeatLayout() {
   const [selected, setSelected] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [booking, setBooking] = React.useState(false);
+  const [availability, setAvailability] = React.useState(null);
 
   const checkoutOpened = React.useRef(false);
   const activeBookingId = React.useRef(null);
 
   // Load the actual show and seats from the backend.
   const loadShowAndSeats = React.useCallback(async () => {
-    const [showData, seatData] = await Promise.all([
+    const [showData, seatData, availabilityData] = await Promise.all([
       getShow(id),
       getSeats(id),
+      // Availability is advisory here; the booking call re-validates anyway.
+      getShowAvailability(id).catch(() => null),
     ]);
 
     if (!Array.isArray(seatData)) {
@@ -80,6 +83,7 @@ export default function SeatLayout() {
 
     setShow(showData);
     setSeats(seatData);
+    setAvailability(availabilityData);
     setSelected([]);
   }, [id]);
 
@@ -90,9 +94,10 @@ export default function SeatLayout() {
       setLoading(true);
 
       try {
-        const [showData, seatData] = await Promise.all([
+        const [showData, seatData, availabilityData] = await Promise.all([
           getShow(id),
           getSeats(id),
+          getShowAvailability(id).catch(() => null),
         ]);
 
         if (!active) return;
@@ -103,6 +108,7 @@ export default function SeatLayout() {
 
         setShow(showData);
         setSeats(seatData);
+        setAvailability(availabilityData);
       } catch (error) {
         if (active) {
           toast.error(error.message || "Unable to load show or seats");
@@ -336,6 +342,49 @@ export default function SeatLayout() {
     try {
       setBooking(true);
 
+      /*
+       * Re-validate the show and the selected seats immediately before
+       * reserving. This closes the gap between opening the page and paying:
+       * the show may have expired, or another customer may have taken a seat.
+       */
+      const [latestAvailability, latestSeats] = await Promise.all([
+        getShowAvailability(id),
+        getSeats(id),
+      ]);
+
+      if (!latestAvailability || latestAvailability.bookable !== true) {
+        toast.error("This show is no longer available for booking.");
+        await loadShowAndSeats();
+        return;
+      }
+
+      const latestById = new Map(
+        (Array.isArray(latestSeats) ? latestSeats : []).map((seat) => [
+          seat.id,
+          seat,
+        ])
+      );
+
+      const seatsTaken = selected.filter(
+        (seat) => latestById.get(seat.id)?.booked
+      );
+
+      if (seatsTaken.length > 0) {
+        toast.error(
+          "Some selected seats were just taken. Please choose again."
+        );
+        await loadShowAndSeats();
+        return;
+      }
+
+      if (Number(latestAvailability.availableSeats) < selected.length) {
+        toast.error(
+          "Not enough seats are available right now. Please choose again."
+        );
+        await loadShowAndSeats();
+        return;
+      }
+
       // Load Razorpay Checkout.
       const scriptLoaded = await loadRazorpayScript();
 
@@ -476,6 +525,25 @@ export default function SeatLayout() {
 
           </div>
         </div>
+
+        {availability && availability.bookable === false && (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/[.08] px-4 py-3 text-sm text-amber-200">
+            <Info size={16} className="mt-0.5 shrink-0" />
+            <span>
+              This show is no longer open for booking. The seat map is shown
+              for reference only.
+            </span>
+          </div>
+        )}
+
+        {availability &&
+          availability.bookable !== false &&
+          Number(availability.availableSeats) === 0 && (
+            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-400/25 bg-red-400/[.07] px-4 py-3 text-sm text-red-200">
+              <Info size={16} className="mt-0.5 shrink-0" />
+              <span>This show is sold out.</span>
+            </div>
+          )}
 
         <div className="grid gap-8 xl:grid-cols-[1fr_330px]">
 
@@ -619,7 +687,10 @@ export default function SeatLayout() {
               disabled={
                 booking ||
                 selected.length === 0 ||
-                seats.length === 0
+                seats.length === 0 ||
+                availability?.bookable === false ||
+                (availability &&
+                  Number(availability.availableSeats) === 0)
               }
               onClick={book}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-35"

@@ -23,6 +23,12 @@ public interface BookingRepository
 
     List<Booking> findByShowId(Long showId);
 
+    /*
+     * Used to decide whether a show may be physically deleted. Any booking
+     * (pending, confirmed or cancelled) keeps the show as history.
+     */
+    boolean existsByShowId(Long showId);
+
     // Find a booking using its Razorpay order ID.
     Optional<Booking> findByRazorpayOrderId(String razorpayOrderId);
 

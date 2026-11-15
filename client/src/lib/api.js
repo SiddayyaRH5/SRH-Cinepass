@@ -103,6 +103,30 @@ export const getShows = () =>
 export const getShow = (id) =>
   apiFetch(`/api/shows/${id}`);
 
+// Movie-based discovery: city -> theatre -> date -> showtime.
+export const getMovieCities = (movieId) =>
+  apiFetch(`/api/shows/discover/movies/${movieId}/cities`);
+
+export const getMovieTheatres = (movieId, locationId) =>
+  apiFetch(
+    `/api/shows/discover/movies/${movieId}/cities/${locationId}/theatres`
+  );
+
+export const getMovieShowDates = (movieId, theatreId) =>
+  apiFetch(
+    `/api/shows/discover/movies/${movieId}/theatres/${theatreId}/dates`
+  );
+
+export const getMovieShowTimes = (movieId, theatreId, date) =>
+  apiFetch(
+    `/api/shows/discover/movies/${movieId}/theatres/${theatreId}/dates/${date}`
+  );
+
+// Live lifecycle + seat availability for a single show. Called immediately
+// before creating an order so a stale page cannot book a closed show.
+export const getShowAvailability = (showId) =>
+  apiFetch(`/api/shows/${showId}/availability`);
+
 export const getShowsByTheatreAndDate = (theatreId, date) =>
   apiFetch(`/api/shows/theatre/${theatreId}/date/${date}`);
 

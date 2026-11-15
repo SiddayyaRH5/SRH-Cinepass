@@ -3,16 +3,21 @@ package com.srh.cinepass.service;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.entity.Seat;
 import com.srh.cinepass.entity.Show;
+import com.srh.cinepass.entity.ShowStatus;
 import com.srh.cinepass.entity.Theatre;
+import com.srh.cinepass.repository.BookingRepository;
 import com.srh.cinepass.repository.MovieRepository;
 import com.srh.cinepass.repository.SeatRepository;
 import com.srh.cinepass.repository.ShowRepository;
 import com.srh.cinepass.repository.TheatreRepository;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,6 +27,7 @@ public class ShowService {
     private final MovieRepository movieRepository;
     private final TheatreRepository theatreRepository;
     private final SeatRepository seatRepository;
+    private final BookingRepository bookingRepository;
     private final OwnerAuthorizationService ownerAuthorizationService;
 
     public ShowService(
@@ -29,12 +35,14 @@ public class ShowService {
             MovieRepository movieRepository,
             TheatreRepository theatreRepository,
             SeatRepository seatRepository,
+            BookingRepository bookingRepository,
             OwnerAuthorizationService ownerAuthorizationService) {
 
         this.showRepository = showRepository;
         this.movieRepository = movieRepository;
         this.theatreRepository = theatreRepository;
         this.seatRepository = seatRepository;
+        this.bookingRepository = bookingRepository;
         this.ownerAuthorizationService = ownerAuthorizationService;
     }
 
@@ -75,10 +83,18 @@ public class ShowService {
 
     // ============================================================
     // GET SHOWS BY DATE
+    //
+    // Shows are stored as a single IST wall-clock instant, so a calendar day is
+    // the half-open range [date 00:00, date+1 00:00). This replaces the old
+    // derived "showDate" query, which was not a persisted property.
     // ============================================================
 
     public List<Show> getShowsByDate(LocalDate date) {
-        return showRepository.findByShowDate(date);
+        return showRepository
+                .findByShowTimeGreaterThanEqualAndShowTimeLessThanOrderByShowTimeAsc(
+                        startOf(date),
+                        startOf(date.plusDays(1))
+                );
     }
 
     // ============================================================
@@ -89,10 +105,12 @@ public class ShowService {
             Long movieId,
             LocalDate date) {
 
-        return showRepository.findByMovieIdAndShowDate(
-                movieId,
-                date
-        );
+        return showRepository
+                .findByMovieIdAndShowTimeGreaterThanEqualAndShowTimeLessThanOrderByShowTimeAsc(
+                        movieId,
+                        startOf(date),
+                        startOf(date.plusDays(1))
+                );
     }
 
     // ============================================================
@@ -103,10 +121,12 @@ public class ShowService {
             Long theatreId,
             LocalDate date) {
 
-        return showRepository.findByTheatreIdAndShowDate(
-                theatreId,
-                date
-        );
+        return showRepository
+                .findByTheatreIdAndShowTimeGreaterThanEqualAndShowTimeLessThanOrderByShowTimeAsc(
+                        theatreId,
+                        startOf(date),
+                        startOf(date.plusDays(1))
+                );
     }
 
     // ============================================================
@@ -170,27 +190,105 @@ public class ShowService {
             );
         }
 
+        LocalDateTime showDateTime = show.getShowDateTime();
+
+        if (showDateTime == null) {
+            throw new RuntimeException(
+                    "Show date and time are required"
+            );
+        }
+
+        /*
+         * Uniqueness is the exact scheduled instant, not movie+theatre+date.
+         * That still allows several showtimes for the same movie on one day.
+         */
         boolean alreadyExists =
                 showRepository
-                        .existsByMovieIdAndTheatreIdAndShowDateAndShowTime(
+                        .existsByMovieIdAndTheatreIdAndShowTime(
                                 movieId,
                                 theatreId,
-                                show.getShowDate(),
-                                show.getShowTime()
+                                showDateTime
                         );
 
         if (alreadyExists) {
             throw new RuntimeException(
-                    "A show already exists for this movie, theatre, date and time"
+                    "A show already exists for this movie, theatre and time"
             );
         }
 
         show.setMovie(movie);
         show.setTheatre(theatre);
 
+        // Legacy rows may have a null status; new rows always start SCHEDULED.
+        show.setStatus(ShowStatus.SCHEDULED);
+
         Show savedShow = showRepository.save(show);
 
-        // Create seats automatically
+        // Create seats automatically (idempotent guard inside)
+        createSeatsForShow(savedShow, theatre.getTotalSeats());
+
+        return savedShow;
+    }
+
+    // ============================================================
+    // SCHEDULER-FACING SHOW CREATION
+    //
+    // Each show runs in its own transaction so a single constraint violation or
+    // bad theatre cannot roll back an entire daily generation run. The method is
+    // idempotent: an existing show for the exact instant returns null.
+    // ============================================================
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Show addShowForScheduler(
+            Movie movie,
+            Theatre theatre,
+            LocalDateTime showTime,
+            Double ticketPrice) {
+
+        if (movie == null || movie.getId() == null) {
+            throw new RuntimeException("Movie is required");
+        }
+
+        if (theatre == null || theatre.getId() == null) {
+            throw new RuntimeException("Theatre is required");
+        }
+
+        if (showTime == null) {
+            throw new RuntimeException("Show time is required");
+        }
+
+        if (ticketPrice == null || ticketPrice < 0) {
+            throw new RuntimeException(
+                    "Ticket price must be zero or greater"
+            );
+        }
+
+        boolean alreadyExists =
+                showRepository
+                        .existsByMovieIdAndTheatreIdAndShowTime(
+                                movie.getId(),
+                                theatre.getId(),
+                                showTime
+                        );
+
+        if (alreadyExists) {
+            return null;
+        }
+
+        Show show = new Show();
+        show.setMovie(movie);
+        show.setTheatre(theatre);
+        show.setShowTime(showTime);
+        show.setTicketPrice(ticketPrice);
+        show.setStatus(ShowStatus.SCHEDULED);
+
+        /*
+         * Flush so a concurrent insert that slipped past the exists() check
+         * fails inside this transaction (caught by the generation service)
+         * instead of at commit time, where it would be harder to attribute.
+         */
+        Show savedShow = showRepository.saveAndFlush(show);
+
         createSeatsForShow(savedShow, theatre.getTotalSeats());
 
         return savedShow;
@@ -198,17 +296,32 @@ public class ShowService {
 
     // ============================================================
     // CREATE SEATS
+    //
+    // Idempotent: if the show already has any seat rows they are left exactly
+    // as they are. Booked and temporarily reserved seats are therefore never
+    // touched or regenerated.
     // ============================================================
 
-    private void createSeatsForShow(
+    @Transactional
+    public void createSeatsForShow(
             Show show,
             int totalSeats) {
+
+        if (show == null || show.getId() == null) {
+            throw new RuntimeException("Show is required");
+        }
 
         if (totalSeats <= 0) {
             throw new RuntimeException(
                     "Theatre must have at least one seat"
             );
         }
+
+        if (seatRepository.countByShowId(show.getId()) > 0) {
+            return;
+        }
+
+        List<Seat> seats = new ArrayList<>(totalSeats);
 
         for (int i = 1; i <= totalSeats; i++) {
 
@@ -218,8 +331,10 @@ public class ShowService {
             seat.setBooked(false);
             seat.setShow(show);
 
-            seatRepository.save(seat);
+            seats.add(seat);
         }
+
+        seatRepository.saveAll(seats);
     }
 
     // ============================================================
@@ -295,19 +410,21 @@ public class ShowService {
             );
         }
 
+        LocalDateTime updatedDateTime =
+                updatedShow.getShowDateTime();
+
         boolean alreadyExists =
                 showRepository
-                        .existsByMovieIdAndTheatreIdAndShowDateAndShowTimeAndIdNot(
+                        .existsByMovieIdAndTheatreIdAndShowTimeAndIdNot(
                                 movieId,
                                 theatreId,
-                                updatedShow.getShowDate(),
-                                updatedShow.getShowTime(),
+                                updatedDateTime,
                                 showId
                         );
 
         if (alreadyExists) {
             throw new RuntimeException(
-                    "Another show already exists for this movie, theatre, date and time"
+                    "Another show already exists for this movie, theatre and time"
             );
         }
 
@@ -336,6 +453,9 @@ public class ShowService {
 
     // ============================================================
     // DELETE SHOW
+    //
+    // A show that already has bookings, tickets or payments is never physically
+    // removed. It is marked CANCELLED instead so all history stays intact.
     // ============================================================
 
     @Transactional
@@ -364,6 +484,13 @@ public class ShowService {
                 theatreId,
                 isAdmin
         );
+
+        if (bookingRepository.existsByShowId(showId)) {
+
+            existingShow.setStatus(ShowStatus.CANCELLED);
+            showRepository.save(existingShow);
+            return;
+        }
 
         // Delete seats belonging to this show first
         seatRepository.deleteByShowId(showId);
@@ -416,5 +543,9 @@ public class ShowService {
                     "You are not authorized to manage this theatre"
             );
         }
+    }
+
+    private static LocalDateTime startOf(LocalDate date) {
+        return date.atStartOfDay();
     }
 }

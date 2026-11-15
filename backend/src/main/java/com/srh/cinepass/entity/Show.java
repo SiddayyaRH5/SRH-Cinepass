@@ -1,5 +1,6 @@
 package com.srh.cinepass.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.srh.cinepass.util.BusinessTime;
 import jakarta.persistence.*;
 import java.time.LocalDate;
@@ -27,6 +28,15 @@ public class Show {
 
     @Column(name = "ticket_price", nullable = false)
     private Double ticketPrice;
+
+    /*
+     * Nullable on purpose: shows created before this feature have no value and
+     * are treated as SCHEDULED. Cleanup only ever moves SCHEDULED/null rows to
+     * EXPIRED; it never deletes shows, bookings, tickets or payments.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20)
+    private ShowStatus status;
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -58,4 +68,14 @@ public class Show {
 
     public Double getTicketPrice() { return ticketPrice; }
     public void setTicketPrice(Double ticketPrice) { this.ticketPrice = ticketPrice; }
+
+    /**
+     * Full IST wall-clock start instant. Kept out of JSON so the existing
+     * {@code showDate}/{@code showTime} contract stays unchanged for clients.
+     */
+    @JsonIgnore
+    public LocalDateTime getShowDateTime() { return showTime; }
+
+    public ShowStatus getStatus() { return status; }
+    public void setStatus(ShowStatus status) { this.status = status; }
 }

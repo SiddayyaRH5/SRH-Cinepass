@@ -40,6 +40,7 @@ public class BookingService {
         private final ShowRepository showRepository;
         private final SeatRepository seatRepository;
         private final TicketService ticketService;
+        private final ShowAvailabilityPolicy showAvailabilityPolicy;
         private final Clock clock;
 
         public BookingService(
@@ -47,12 +48,14 @@ public class BookingService {
                         ShowRepository showRepository,
                         SeatRepository seatRepository,
                         TicketService ticketService,
+                        ShowAvailabilityPolicy showAvailabilityPolicy,
                         Clock clock) {
 
                 this.bookingRepository = bookingRepository;
                 this.showRepository = showRepository;
                 this.seatRepository = seatRepository;
                 this.ticketService = ticketService;
+                this.showAvailabilityPolicy = showAvailabilityPolicy;
                 this.clock = clock;
         }
 
@@ -96,6 +99,17 @@ public class BookingService {
                 List<String> seatNumbers = new ArrayList<>();
 
                 LocalDateTime now = LocalDateTime.now(clock);
+
+                /*
+                 * Lifecycle + booking-window guard. An expired, completed or
+                 * cancelled show, or one whose sales have already closed, can
+                 * never receive a new booking. Already issued tickets and paid
+                 * bookings are unaffected because this only gates new orders.
+                 */
+                if (!showAvailabilityPolicy.isBookable(show, now)) {
+                        throw new IllegalArgumentException(
+                                        "This show is no longer available for booking");
+                }
 
                 // Lock seats in a consistent order to avoid concurrent booking conflicts.
                 for (Long seatId : sortedSeatIds) {
