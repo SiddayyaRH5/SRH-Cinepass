@@ -33,6 +33,12 @@ import java.util.UUID;
  * idempotent: the exact showtime is the uniqueness key, so reruns and retries
  * never create a second show or a second seat row.</p>
  *
+ * <p>{@code app.shows.scheduler.horizon-days} is the <em>number of calendar
+ * dates</em> in the rolling window, not the number of days in the future. A
+ * value of {@code 7} therefore covers today and the next six dates, which is
+ * exactly seven dates. The minimum of one keeps the window valid even when
+ * the property is configured to zero.</p>
+ *
  * <p>Cross-instance safety has two layers: a database lease (best effort) and
  * the database uniqueness constraint (authoritative). A constraint violation
  * is counted as a skip, never as a fatal error.</p>
@@ -71,7 +77,7 @@ public class ShowGenerationService {
             TheatreRepository theatreRepository,
             ShowRepository showRepository,
             Clock clock,
-            @Value("${app.shows.scheduler.horizon-days:2}") int horizonDays,
+            @Value("${app.shows.scheduler.horizon-days:7}") int horizonDays,
             @Value("${app.shows.scheduler.min-lead-minutes:30}") int minLeadMinutes,
             @Value("${app.shows.scheduler.movies-per-theatre-per-day:4}")
             int moviesPerTheatrePerDay,
@@ -89,7 +95,7 @@ public class ShowGenerationService {
         this.showRepository = showRepository;
         this.clock = clock;
 
-        this.horizonDays = Math.max(0, horizonDays);
+        this.horizonDays = Math.max(1, horizonDays);
         this.minLeadMinutes = Math.max(0, minLeadMinutes);
         this.moviesPerTheatrePerDay = Math.max(1, moviesPerTheatrePerDay);
         this.baseTicketPrice = Math.max(0, baseTicketPrice);
@@ -118,6 +124,20 @@ public class ShowGenerationService {
         }
     }
 
+    /**
+     * Runs one generation pass without touching the lease.
+     *
+     * <p>Used by the daily automation orchestrator, which acquires the lease
+     * once and then runs the catalogue sync, the lifecycle evaluation and the
+     * show generation under that single lease. Calling
+     * {@link #generateUpcomingShows()} from there would fail to acquire the
+     * lease a second time and silently skip generation, so this entry point
+     * exists to avoid that.</p>
+     */
+    public GenerationReport generateUpcomingShowsWithLeaseHeld() {
+        return generate();
+    }
+
     private GenerationReport generate() {
 
         LocalDateTime now = LocalDateTime.now(clock);
@@ -141,7 +161,7 @@ public class ShowGenerationService {
         int skipped = 0;
         int failed = 0;
 
-        for (int day = 0; day <= horizonDays; day++) {
+        for (int day = 0; day < horizonDays; day++) {
 
             LocalDate date = today.plusDays(day);
 

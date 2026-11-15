@@ -60,6 +60,42 @@ public interface BookingRepository
             String paymentRecoveryStatus);
 
     /*
+     * ------------------------------------------------------------
+     * Movie lifecycle support
+     * ------------------------------------------------------------
+     *
+     * A movie may only be retired when nothing about its bookings is still
+     * open. These counts let the lifecycle job decide that without loading
+     * any booking into memory.
+     */
+
+    /**
+     * Bookings of a movie that still have to be fulfilled: pending payment,
+     * confirmed, or parked for manual payment review.
+     */
+    @Query("""
+            SELECT COUNT(b) FROM Booking b
+            WHERE b.show.movie.id = :movieId
+              AND b.status IN :statuses
+            """)
+    long countActiveBookingsForMovie(
+            @Param("movieId") Long movieId,
+            @Param("statuses") List<String> statuses);
+
+    /**
+     * Bookings of a movie whose payment workflow is still unresolved, for
+     * example a captured payment that could not be confirmed automatically.
+     */
+    @Query("""
+            SELECT COUNT(b) FROM Booking b
+            WHERE b.show.movie.id = :movieId
+              AND b.paymentRecoveryStatus = :recoveryStatus
+            """)
+    long countUnresolvedPaymentWorkflowsForMovie(
+            @Param("movieId") Long movieId,
+            @Param("recoveryStatus") String recoveryStatus);
+
+    /*
      * Existing confirmed bookings (created before this feature) need a ticket
      * too. Backfill is idempotent and only selects bookings without a ticket.
      */

@@ -5,8 +5,10 @@ import com.srh.cinepass.dto.ShowCityResponse;
 import com.srh.cinepass.dto.ShowDateResponse;
 import com.srh.cinepass.dto.ShowTheatreResponse;
 import com.srh.cinepass.dto.ShowTimeResponse;
+import com.srh.cinepass.entity.MovieStatus;
 import com.srh.cinepass.entity.Show;
 import com.srh.cinepass.entity.ShowStatus;
+import com.srh.cinepass.repository.MovieRepository;
 import com.srh.cinepass.repository.SeatRepository;
 import com.srh.cinepass.repository.ShowRepository;
 
@@ -45,28 +47,36 @@ public class ShowDiscoveryService {
     private final ShowRepository showRepository;
     private final SeatRepository seatRepository;
     private final ShowAvailabilityPolicy availabilityPolicy;
+    private final MovieRepository movieRepository;
     private final Clock clock;
 
     public ShowDiscoveryService(
             ShowRepository showRepository,
             SeatRepository seatRepository,
             ShowAvailabilityPolicy availabilityPolicy,
+            MovieRepository movieRepository,
             Clock clock) {
 
         this.showRepository = showRepository;
         this.seatRepository = seatRepository;
         this.availabilityPolicy = availabilityPolicy;
+        this.movieRepository = movieRepository;
         this.clock = clock;
     }
 
     public List<ShowCityResponse> getCitiesForMovie(Long movieId) {
+
+        if (isArchived(movieId)) {
+            return List.of();
+        }
 
         return showRepository
                 .findCitiesWithAvailableShows(
                         movieId,
                         bookableFrom(),
                         ShowStatus.SCHEDULED,
-                        APPROVED)
+                        APPROVED,
+                        MovieStatus.ACTIVE)
                 .stream()
                 .map(ShowCityResponse::from)
                 .filter(Objects::nonNull)
@@ -77,13 +87,18 @@ public class ShowDiscoveryService {
             Long movieId,
             Long locationId) {
 
+        if (isArchived(movieId)) {
+            return List.of();
+        }
+
         return showRepository
                 .findTheatresWithAvailableShows(
                         movieId,
                         locationId,
                         bookableFrom(),
                         ShowStatus.SCHEDULED,
-                        APPROVED)
+                        APPROVED,
+                        MovieStatus.ACTIVE)
                 .stream()
                 .map(ShowTheatreResponse::from)
                 .filter(Objects::nonNull)
@@ -94,13 +109,18 @@ public class ShowDiscoveryService {
             Long movieId,
             Long theatreId) {
 
+        if (isArchived(movieId)) {
+            return List.of();
+        }
+
         return showRepository
                 .findAvailableShowInstants(
                         movieId,
                         theatreId,
                         bookableFrom(),
                         ShowStatus.SCHEDULED,
-                        APPROVED)
+                        APPROVED,
+                        MovieStatus.ACTIVE)
                 .stream()
                 .map(LocalDateTime::toLocalDate)
                 .distinct()
@@ -113,6 +133,10 @@ public class ShowDiscoveryService {
             Long theatreId,
             LocalDate date) {
 
+        if (isArchived(movieId)) {
+            return List.of();
+        }
+
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
 
@@ -124,7 +148,8 @@ public class ShowDiscoveryService {
                 from,
                 dayEnd,
                 ShowStatus.SCHEDULED,
-                APPROVED);
+                APPROVED,
+                MovieStatus.ACTIVE);
 
         if (shows.size() > MAX_SHOWTIMES_PER_QUERY) {
             shows = shows.subList(0, MAX_SHOWTIMES_PER_QUERY);
@@ -219,6 +244,23 @@ public class ShowDiscoveryService {
     private LocalDateTime bookableFrom() {
         return availabilityPolicy.earliestBookableStart(
                 LocalDateTime.now(clock));
+    }
+
+    /**
+     * A retired movie is never offered to a customer. The database filter in
+     * the repository already excludes it; this check makes the guarantee
+     * explicit and covers a movie that was archived after its shows were
+     * created.
+     */
+    private boolean isArchived(Long movieId) {
+
+        if (movieId == null) {
+            return false;
+        }
+
+        return movieRepository.findById(movieId)
+                .map(movie -> movie.getStatus() == MovieStatus.ARCHIVED)
+                .orElse(false);
     }
 
     private static int number(Object value) {

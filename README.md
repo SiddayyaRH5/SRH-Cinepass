@@ -7,6 +7,7 @@ Existing React/Vite frontend and Java 21/Spring Boot backend for movie discovery
 - `client/` — React 19, Vite, Tailwind CSS frontend
 - `backend/` — Java 21, Spring Boot, Spring Security, Spring Data JPA backend
 - `render.yaml` — Render deployment blueprint
+- `MOVIE-AUTOMATION.md` — TMDB catalogue sync, seven-day show window, movie lifecycle and the administrator API
 - `PERFORMANCE-OPTIMIZATION-REPORT.md` — findings, changes, limitations, and validation status
 
 ## Local setup
@@ -19,7 +20,7 @@ Existing React/Vite frontend and Java 21/Spring Boot backend for movie discovery
 4. For payment testing, set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` to **test-mode** values. Leave `APP_ENV` unset (or `development`) locally; production-only startup validation then stays off.
 5. From `backend/`, run `./mvnw spring-boot:run` (Windows: `mvnw.cmd spring-boot:run`).
 
-The current backend configuration uses `spring.jpa.hibernate.ddl-auto=update`, so Hibernate applies additive schema changes (it does not drop existing tables). Reviewable, idempotent migrations are provided at `backend/database/migrations/001_create_tickets.sql` and `backend/database/migrations/002_payment_recovery_and_webhook_events.sql` for managed or manually applied schemas. Existing customer data is never deleted by these changes.
+The current backend configuration uses `spring.jpa.hibernate.ddl-auto=update`, so Hibernate applies additive schema changes (it does not drop existing tables). Reviewable, idempotent migrations are provided at `backend/database/migrations/001_create_tickets.sql`, `002_payment_recovery_and_webhook_events.sql`, `003_show_generation_and_lifecycle.sql` and `004_movie_lifecycle_and_automation.sql` for managed or manually applied schemas. Existing customer data is never deleted by these changes.
 
 ### Business time (IST)
 
@@ -33,6 +34,61 @@ Show times, reservation expiry, and ticket admission windows are stored as India
 4. For production validation, run `npm run build`.
 
 `VITE_API_BASE_URL` is public frontend configuration, not a secret. Never put database credentials, JWT secrets, TMDB access tokens, or sync keys in `VITE_*` variables.
+
+## Movie automation (TMDB catalogue, show scheduling, lifecycle)
+
+TMDB is the **only** external movie metadata and release provider. The full
+operational reference is in [`MOVIE-AUTOMATION.md`](MOVIE-AUTOMATION.md); the
+essentials are:
+
+- **Daily at 2:00 AM IST.** One job runs every calendar day
+  (`app.shows.scheduler.cron=0 0 2 * * *`, evaluated in `Asia/Kolkata`). It
+  acquires the existing show-generation lease, synchronises the TMDB
+  catalogue, evaluates the movie lifecycle, generates the missing shows for
+  the rolling window and records the statistics — then releases the lease.
+- **Seven-day rolling window.** `app.shows.scheduler.horizon-days=7` is the
+  *number of calendar dates*: today plus the next six dates, exactly seven
+  dates and never eight. On 16 November the job covers 16–22 November, on 17
+  November it covers 17–23 November and only the missing 23 November shows
+  are created. The uniqueness key is `movie_id + theatre_id + exact
+  show_time`, protected by an application check, a database unique index and
+  the cross-instance lease. Existing shows are never regenerated or deleted.
+- **Indian theatrical release dates only.** A movie is imported only when
+  TMDB confirms an Indian theatrical release date for it, taken from the
+  `IN` block of `release_dates` and only from the theatrical release types
+  (2 and 3). Digital, streaming, physical, TV and premiere dates are never
+  used, and a worldwide date is never treated as the Indian theatrical date.
+- **Idempotent catalogue sync.** The TMDB movie id is the idempotency key. An
+  existing movie is updated, never duplicated; manually managed movies are
+  never overwritten. A unique index on `tmdb_id` is added by migration 004,
+  but only when no duplicate non-null `tmdb_id` groups exist. Duplicates and
+  rows without a TMDB id are *reported* through the admin API and are never
+  merged or deleted automatically.
+- **60-day retirement.** A movie is retired once it is 60 calendar days past
+  its Indian theatrical release date (the age must reach the configured
+  number of days; 60 days exactly is eligible). Retirement never deletes
+  anything: the movie row, its shows, bookings, tickets, seats and payment
+  records are all preserved. A movie with future shows, open bookings, an
+  unresolved payment workflow, administrator protection or an extended
+  active period is never retired, and the reason is recorded on the movie.
+  An archived movie disappears from the customer catalogue, receives no new
+  shows and accepts no new bookings, while its history stays intact.
+- **Administrator controls.** Everything lives under `/api/admin/**`, which
+  the existing security configuration already restricts to the `ADMIN` role:
+  list the imported movies, inspect the synchronisation status and errors,
+  exclude a movie from automatic show generation, protect it from
+  retirement, extend its active period and reactivate it. The public
+  catalogue API never exposes the administrator fields.
+- **Transactions.** No database transaction is held open while the TMDB HTTP
+  requests run. The external calls happen first and the validated results are
+  then persisted in short transactions.
+
+Required environment variables: `TMDB_ACCESS_TOKEN` (for the automatic
+catalogue) and `TMDB_SYNC_KEY` (for the legacy protected sync endpoint). The
+optional switches `MOVIE_SYNC_ENABLED`, `MOVIE_RETIREMENT_ENABLED`,
+`MOVIE_RETIREMENT_DAYS` and `SHOW_SCHEDULER_HORIZON_DAYS` are documented in
+`MOVIE-AUTOMATION.md`. The TMDB access token is a backend-only secret; it is
+never placed in a `VITE_*` variable and never written to a log line.
 
 ## Health endpoints
 
@@ -102,13 +158,17 @@ The seat reservation lasts 10 minutes. If a genuine captured payment arrives aft
    - `RAZORPAY_KEY_ID` — live Razorpay key ID (public, but still server-side configuration)
    - `RAZORPAY_KEY_SECRET` — live Razorpay key secret; never expose it to the frontend
    - `RAZORPAY_WEBHOOK_SECRET` — the secret shown by Razorpay when the webhook is created
-   - `TMDB_ACCESS_TOKEN` — optional if TMDB features are used
+   - `TMDB_ACCESS_TOKEN` — TMDB read access token, required for the automatic movie catalogue
    - `TMDB_SYNC_KEY` — optional but required for the protected sync endpoint
+   - `MOVIE_SYNC_ENABLED` — optional; default `true`, master switch for the TMDB catalogue sync
+   - `MOVIE_RETIREMENT_ENABLED` — optional; default `true`, master switch for automatic movie retirement
+   - `MOVIE_RETIREMENT_DAYS` — optional; default `60`, days after the Indian theatrical date
+   - `SHOW_SCHEDULER_HORIZON_DAYS` — optional; default `7`, calendar dates in the rolling window
    - `DB_POOL_MAX_SIZE` — optional; default `4`
    - `DB_POOL_MIN_IDLE` — optional; default `1` (one warm connection; lightweight Hikari validation every four minutes)
-3. `render.yaml` declares `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` with `sync: false`, so Render prompts for them and never stores them in Git. The same applies to the database and JWT values.
+3. `render.yaml` declares `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `TMDB_ACCESS_TOKEN` and `TMDB_SYNC_KEY` with `sync: false`, so Render prompts for them and never stores them in Git. The same applies to the database and JWT values.
 4. Confirm the Render health check is `/api/health/live`.
-5. Do not override the deployed schema strategy without a reviewed migration. The committed `application.properties` currently uses `ddl-auto=update` for additive changes; `backend/database/migrations/001_create_tickets.sql` and `002_payment_recovery_and_webhook_events.sql` are the reviewable migrations for environments where DDL is applied manually.
+5. Do not override the deployed schema strategy without a reviewed migration. The committed `application.properties` currently uses `ddl-auto=update` for additive changes; `backend/database/migrations/001_create_tickets.sql`, `002_payment_recovery_and_webhook_events.sql`, `003_show_generation_and_lifecycle.sql` and `004_movie_lifecycle_and_automation.sql` are the reviewable migrations for environments where DDL is applied manually.
 
 ## Vercel deployment
 
@@ -145,7 +205,9 @@ The digital ticket and scanner feature is documented in `TICKETS.md`. In short:
 
 ## Build and tests
 
-Backend: `cd backend && ./mvnw -B test` (integration tests use an in-memory H2 database; no MySQL or real Razorpay credentials are required). The suite covers security rules, IST timezone boundaries with a UTC JVM, Razorpay webhook signature/idempotency/amount checks, captured-payment recovery, resold seats, and the browser/webhook confirmation race.
+Backend: `cd backend && ./mvnw -B test` (integration tests use an in-memory H2 database; no MySQL or real Razorpay credentials are required). The suite covers security rules, IST timezone boundaries with a UTC JVM, Razorpay webhook signature/idempotency/amount checks, captured-payment recovery, resold seats, the browser/webhook confirmation race, the TMDB client against a local stub server, the idempotent catalogue synchronisation, the 60-day movie retirement and the seven-day rolling show window.
+
+`MySqlInnoDbTransactionTests` requires Docker. Without Docker it is skipped, so an H2-only result must not be described as proof of the MySQL locking, uniqueness or migration behaviour.
 
 Backend production build: `cd backend && ./mvnw -B package`
 

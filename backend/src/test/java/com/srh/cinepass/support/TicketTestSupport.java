@@ -3,6 +3,8 @@ package com.srh.cinepass.support;
 import com.srh.cinepass.entity.Booking;
 import com.srh.cinepass.entity.Location;
 import com.srh.cinepass.entity.Movie;
+import com.srh.cinepass.entity.MovieSource;
+import com.srh.cinepass.entity.MovieStatus;
 import com.srh.cinepass.entity.RazorpayWebhookEvent;
 import com.srh.cinepass.entity.Seat;
 import com.srh.cinepass.entity.Show;
@@ -33,6 +35,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,6 +96,14 @@ public abstract class TicketTestSupport {
     protected RazorpayWebhookEventRepository webhookEventRepository;
 
     @Autowired
+    protected com.srh.cinepass.repository.ShowGenerationLeaseRepository
+            showGenerationLeaseRepository;
+
+    @Autowired
+    protected com.srh.cinepass.repository.AutomationRunRepository
+            automationRunRepository;
+
+    @Autowired
     protected MutableClock testClock;
 
     @BeforeEach
@@ -109,6 +120,16 @@ public abstract class TicketTestSupport {
         locationRepository.deleteAll();
         movieRepository.deleteAll();
         userRepository.deleteAll();
+
+        /*
+         * The generation lease is a singleton row that carries an expiry
+         * timestamp. Tests move the clock freely, so the row is reset here
+         * to stop one test from inheriting a lease from the previous one.
+         */
+        showGenerationLeaseRepository.deleteAll();
+
+        // The automation audit rows are per-run records.
+        automationRunRepository.deleteAll();
     }
 
     protected User createUser(String name, String role) {
@@ -136,6 +157,22 @@ public abstract class TicketTestSupport {
         return movieRepository.saveAndFlush(movie);
     }
 
+    /**
+     * A TMDB-managed movie with a confirmed Indian theatrical release date.
+     */
+    protected Movie createTmdbMovie(String title, Long tmdbId, LocalDate indiaDate) {
+        Movie movie = new Movie();
+        movie.setTitle(title);
+        movie.setTmdbId(tmdbId);
+        movie.setSource(MovieSource.TMDB);
+        movie.setStatus(MovieStatus.ACTIVE);
+        movie.setIndiaTheatricalReleaseDate(indiaDate);
+        movie.setReleaseDate(indiaDate);
+        movie.setPosterUrl("https://example.test/" + SEQUENCE.incrementAndGet() + ".jpg");
+        movie.setDuration(120);
+        return movieRepository.saveAndFlush(movie);
+    }
+
     protected Location createLocation(String city) {
         Location location = new Location(
                 city + " " + SEQUENCE.incrementAndGet(),
@@ -148,6 +185,16 @@ public abstract class TicketTestSupport {
     protected Theatre createTheatre(User owner, String name) {
         Theatre theatre = new Theatre(name, 100, createLocation("Theatre City"));
         theatre.setOwner(owner);
+        return theatreRepository.saveAndFlush(theatre);
+    }
+
+    /**
+     * A theatre without an owner. Admin-created theatres are always eligible
+     * for automatic show generation.
+     */
+    protected Theatre createAdminTheatre(String name, int totalSeats) {
+        Location location = createLocation("Theatre City");
+        Theatre theatre = new Theatre(name, totalSeats, location);
         return theatreRepository.saveAndFlush(theatre);
     }
 

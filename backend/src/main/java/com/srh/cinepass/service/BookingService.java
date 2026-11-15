@@ -2,6 +2,7 @@ package com.srh.cinepass.service;
 
 import com.srh.cinepass.dto.BookingRequest;
 import com.srh.cinepass.entity.Booking;
+import com.srh.cinepass.entity.MovieStatus;
 import com.srh.cinepass.entity.Seat;
 import com.srh.cinepass.entity.Show;
 import com.srh.cinepass.repository.BookingRepository;
@@ -85,6 +86,17 @@ public class BookingService {
 
                 Show show = showRepository.findById(request.getShowId())
                                 .orElseThrow(() -> new IllegalArgumentException("Show not found"));
+
+                /*
+                 * A retired movie never accepts a new booking. The movie row,
+                 * its shows and its history are preserved; only new orders
+                 * are refused.
+                 */
+                if (show.getMovie() != null
+                                && show.getMovie().getStatus() == MovieStatus.ARCHIVED) {
+                        throw new IllegalArgumentException(
+                                        "This movie is no longer available for booking");
+                }
 
                 Set<Long> uniqueSeatIds = new HashSet<>(request.getSeatIds());
 

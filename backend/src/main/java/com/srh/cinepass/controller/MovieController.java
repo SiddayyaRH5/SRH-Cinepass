@@ -2,6 +2,7 @@ package com.srh.cinepass.controller;
 
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.service.MovieService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,12 +62,18 @@ public class MovieController {
 
     // DELETE movie
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMovie(@PathVariable Long id) {
+    public ResponseEntity<?> deleteMovie(@PathVariable Long id) {
 
         try {
             movieService.deleteMovie(id);
 
             return ResponseEntity.noContent().build();
+
+        } catch (IllegalStateException e) {
+
+            // The movie has history and must not be deleted.
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(java.util.Map.of("message", e.getMessage()));
 
         } catch (RuntimeException e) {
 

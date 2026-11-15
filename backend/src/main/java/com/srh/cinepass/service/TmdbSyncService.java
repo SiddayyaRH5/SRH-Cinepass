@@ -1,94 +1,95 @@
-
 package com.srh.cinepass.service;
 
+import com.srh.cinepass.dto.TmdbMovieDetails;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.repository.MovieRepository;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.JsonNode;
 
-import java.time.LocalDate;
-import java.util.stream.StreamSupport;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
+/**
+ * The manual "sync this movie with TMDB" service behind
+ * {@code POST /api/tmdb/sync/{movieId}}.
+ *
+ * <p>The TMDB HTTP call happens outside of any transaction, and the
+ * persistence happens in a short transaction of its own. That keeps the
+ * database connection free while the API is contacted.</p>
+ *
+ * <p>The release date is taken from the confirmed Indian theatrical release
+ * date only. A worldwide, digital, streaming, physical or TV date is never
+ * used as the Indian theatrical release date. When TMDB has no Indian
+ * theatrical date for the movie, the metadata is still imported but the
+ * release date is left untouched and the reason is recorded on the movie, so
+ * the scheduler never schedules the movie before an Indian date is known.
+ */
 @Service
 public class TmdbSyncService {
 
     private final TmdbService tmdbService;
     private final MovieRepository movieRepository;
+    private final MovieCatalogueWriter writer;
+    private final Clock clock;
 
     public TmdbSyncService(
             TmdbService tmdbService,
-            MovieRepository movieRepository) {
+            MovieRepository movieRepository,
+            MovieCatalogueWriter writer,
+            Clock clock) {
+
         this.tmdbService = tmdbService;
         this.movieRepository = movieRepository;
+        this.writer = writer;
+        this.clock = clock;
     }
 
-    @Transactional
     public Movie syncMovie(Long movieId, Long tmdbId) {
 
-        // Find existing movie in our database
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new RuntimeException("Movie not found: " + movieId));
 
-        // Fetch verified movie details from TMDB
-        JsonNode details = tmdbService.getMovieDetails(tmdbId);
-
-        // Verify returned TMDB ID
-        if (details.path("id").asLong(-1) != tmdbId) {
-            throw new RuntimeException("TMDB ID verification failed");
+        if (tmdbId == null || tmdbId <= 0) {
+            throw new RuntimeException("A valid TMDB movie id is required");
         }
 
-        movie.setTmdbId(tmdbId);
+        Optional<TmdbMovieDetails> details = tmdbService.fetchMovieDetails(tmdbId);
 
-        String overview = details.path("overview").asText("");
-        if (!overview.isBlank()) {
-            movie.setDescription(overview);
+        if (details.isEmpty()) {
+            writer.recordSyncError(movieId,
+                    "TMDB has no usable record for movie id " + tmdbId);
+
+            throw new RuntimeException(
+                    "TMDB returned no usable movie for id: " + tmdbId);
         }
 
-        String poster = tmdbService.getPosterUrl(details);
-        if (poster != null) {
-            movie.setPosterUrl(poster);
-        }
+        TmdbMovieDetails movieDetails = details.get();
 
-        String backdrop = tmdbService.getBackdropUrl(details);
-        if (backdrop != null) {
-            movie.setBackdropUrl(backdrop);
-        }
+        LocalDateTime now = LocalDateTime.now(clock);
 
-        String releaseDate = details.path("release_date").asText("");
-        if (!releaseDate.isBlank()) {
-            movie.setReleaseDate(LocalDate.parse(releaseDate));
-        }
+        try {
+            Movie updated = writer.linkTmdbMovie(movieId, tmdbId, movieDetails, now);
 
-        if (details.path("vote_average").isNumber()) {
-            movie.setRating(details.path("vote_average").asDouble());
-        }
-
-        if (details.path("runtime").isNumber()
-                && details.path("runtime").asInt() > 0) {
-            movie.setDuration(details.path("runtime").asInt());
-        }
-
-        String language = details.path("original_language").asText("");
-        if (!language.isBlank()) {
-            movie.setLanguage(language);
-        }
-
-        JsonNode genres = details.path("genres");
-
-        if (genres.isArray() && !genres.isEmpty()) {
-            String genreNames = StreamSupport.stream(
-                    genres.spliterator(), false)
-                    .map(genre -> genre.path("name").asText(""))
-                    .filter(name -> !name.isBlank())
-                    .reduce((a, b) -> a + ", " + b)
-                    .orElse("");
-
-            if (!genreNames.isBlank()) {
-                movie.setGenre(genreNames);
+            if (updated == null) {
+                throw new RuntimeException("Movie not found: " + movieId);
             }
-        }
 
-        return movieRepository.save(movie);
+            if (movieDetails.indiaTheatricalReleaseDate() == null) {
+                writer.recordSyncError(movieId,
+                        "TMDB has no Indian theatrical release date; "
+                        + "the release date was left unchanged");
+            }
+
+            return updated;
+
+        } catch (DataIntegrityViolationException duplicate) {
+            writer.recordSyncError(movieId,
+                    "Another movie already uses TMDB id " + tmdbId);
+
+            throw new RuntimeException(
+                    "TMDB id " + tmdbId + " is already linked to another movie");
+        }
     }
 }

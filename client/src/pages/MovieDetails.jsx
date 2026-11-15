@@ -105,6 +105,29 @@ function SelectChip({ active, onClick, children }) {
   );
 }
 
+/**
+ * Shown instead of the booking flow when a movie has been retired from the
+ * active catalogue. The movie page itself still works, so an old bookmark or
+ * a shared link explains what happened instead of failing.
+ */
+function ArchivedNotice() {
+  return (
+    <div
+      role="status"
+      className="rounded-2xl border border-amber-300/25 bg-amber-300/[.07] px-5 py-6 text-sm text-amber-100/80"
+    >
+      <p className="font-semibold text-amber-100">
+        This movie is no longer in theatres.
+      </p>
+
+      <p className="mt-2 leading-6 text-amber-100/60">
+        It has been retired from the active catalogue, so new bookings are
+        closed. Existing tickets, bookings and payment records are unaffected.
+      </p>
+    </div>
+  );
+}
+
 export default function MovieDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -113,6 +136,8 @@ export default function MovieDetails() {
   const [movie, setMovie] = React.useState(null);
   const [movieLoading, setMovieLoading] = React.useState(true);
   const [movieError, setMovieError] = React.useState("");
+  const [archived, setArchived] = React.useState(false);
+  const [movieLoaded, setMovieLoaded] = React.useState(false);
 
   const [retryToken, setRetryToken] = React.useState(0);
 
@@ -148,16 +173,23 @@ export default function MovieDetails() {
 
     getMovie(id)
       .then((data) => {
-        if (active) setMovie(data);
+        if (!active) return;
+
+        setMovie(data);
+        setArchived(data?.status === "ARCHIVED");
       })
       .catch((error) => {
         if (active) {
           setMovie(null);
+          setArchived(false);
           setMovieError(error.message || "Unable to load this movie.");
         }
       })
       .finally(() => {
-        if (active) setMovieLoading(false);
+        if (!active) return;
+
+        setMovieLoading(false);
+        setMovieLoaded(true);
       });
 
     return () => {
@@ -168,6 +200,22 @@ export default function MovieDetails() {
   // Cities that currently have bookable shows for this movie.
   React.useEffect(() => {
     let active = true;
+
+    // The lifecycle state decides whether a discovery request is made at
+    // all, so the movie has to be loaded first.
+    if (!movieLoaded) {
+      return undefined;
+    }
+
+    // A retired movie never has bookable shows, so no discovery request is
+    // made for it at all.
+    if (archived) {
+      setCities([]);
+      setSelectedCityId(null);
+      setCitiesError("");
+      setCitiesLoading(false);
+      return undefined;
+    }
 
     setCitiesLoading(true);
     setCitiesError("");
@@ -201,7 +249,7 @@ export default function MovieDetails() {
     return () => {
       active = false;
     };
-  }, [id, selectedLocation, retryToken]);
+  }, [id, selectedLocation, retryToken, archived, movieLoaded]);
 
   // Theatres for the selected city.
   React.useEffect(() => {
@@ -669,10 +717,12 @@ export default function MovieDetails() {
                 sm:text-xs
               "
             >
-              Choose your experience
+              {archived ? "Retired" : "Choose your experience"}
             </p>
 
-            <h2 className="mt-2 text-2xl font-semibold">Book tickets</h2>
+            <h2 className="mt-2 text-2xl font-semibold">
+              {archived ? "No longer bookable" : "Book tickets"}
+            </h2>
           </div>
 
           <button
@@ -685,6 +735,9 @@ export default function MovieDetails() {
           </button>
         </div>
 
+        {archived ? (
+          <ArchivedNotice />
+        ) : (
         <div className="space-y-7">
 
           {/* CITY */}
@@ -904,6 +957,7 @@ export default function MovieDetails() {
           )}
 
         </div>
+        )}
       </section>
 
     </main>

@@ -1,6 +1,7 @@
 package com.srh.cinepass.repository;
 
 import com.srh.cinepass.entity.Location;
+import com.srh.cinepass.entity.MovieStatus;
 import com.srh.cinepass.entity.Show;
 import com.srh.cinepass.entity.ShowStatus;
 import com.srh.cinepass.entity.Theatre;
@@ -71,11 +72,14 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
      * Shared eligibility predicate: only SCHEDULED (or legacy null) shows,
      * starting after the bookable cut-off, at a theatre that has a real seat
      * count, a location, and either no owner (admin-created) or an APPROVED
-     * owner verification. All filtering stays in the database.
+     * owner verification. Archived movies are excluded so a retired movie is
+     * never offered to a customer as bookable. All filtering stays in the
+     * database.
      */
     String AVAILABLE_SHOW_PREDICATE = """
               AND s.showTime > :from
               AND (s.status IS NULL OR s.status = :scheduled)
+              AND (s.movie.status IS NULL OR s.movie.status = :active)
               AND s.theatre.totalSeats > 0
               AND s.theatre.location IS NOT NULL
               AND (s.theatre.owner IS NULL OR EXISTS (
@@ -96,7 +100,8 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
             @Param("movieId") Long movieId,
             @Param("from") LocalDateTime from,
             @Param("scheduled") ShowStatus scheduled,
-            @Param("approved") String approved);
+            @Param("approved") String approved,
+            @Param("active") MovieStatus active);
 
     @Query("""
             SELECT DISTINCT s.theatre
@@ -111,7 +116,8 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
             @Param("locationId") Long locationId,
             @Param("from") LocalDateTime from,
             @Param("scheduled") ShowStatus scheduled,
-            @Param("approved") String approved);
+            @Param("approved") String approved,
+            @Param("active") MovieStatus active);
 
     @Query("""
             SELECT s FROM Show s
@@ -127,7 +133,8 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             @Param("scheduled") ShowStatus scheduled,
-            @Param("approved") String approved);
+            @Param("approved") String approved,
+            @Param("active") MovieStatus active);
 
     /**
      * Distinct calendar dates (IST) that still have bookable shows for the
@@ -147,7 +154,28 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
             @Param("theatreId") Long theatreId,
             @Param("from") LocalDateTime from,
             @Param("scheduled") ShowStatus scheduled,
-            @Param("approved") String approved);
+            @Param("approved") String approved,
+            @Param("active") MovieStatus active);
+
+    // ------------------------------------------------------------
+    // Movie lifecycle support
+    // ------------------------------------------------------------
+
+    /**
+     * Counts shows of a movie that are still scheduled to start in the
+     * future. A movie with such a show must not be retired, because the
+     * show still has to be honoured.
+     */
+    @Query("""
+            SELECT COUNT(s) FROM Show s
+            WHERE s.movie.id = :movieId
+              AND s.showTime > :from
+              AND (s.status IS NULL OR s.status = :scheduled)
+            """)
+    long countFutureScheduledShows(
+            @Param("movieId") Long movieId,
+            @Param("from") LocalDateTime from,
+            @Param("scheduled") ShowStatus scheduled);
 
     // ------------------------------------------------------------
     // Lifecycle cleanup

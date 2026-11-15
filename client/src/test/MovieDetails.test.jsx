@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import MovieDetails from "../pages/MovieDetails";
 import { LocationProvider } from "../lib/LocationContext";
+import { formatDate } from "../lib/formatters";
 
 vi.mock("../lib/api", async () => {
   const actual = await vi.importActual("../lib/api");
@@ -143,5 +144,70 @@ describe("Movie details booking flow", () => {
 
     expect(showtime).toBeDisabled();
     expect(showtime).toHaveTextContent("Sold out");
+  });
+
+  it("offers every date of the rolling seven day window", async () => {
+    const dates = [
+      "2026-11-16",
+      "2026-11-17",
+      "2026-11-18",
+      "2026-11-19",
+      "2026-11-20",
+      "2026-11-21",
+      "2026-11-22",
+    ];
+
+    getMovieShowDates.mockResolvedValue(
+      dates.map((date) => ({ date }))
+    );
+
+    renderMovie();
+
+    for (const date of dates) {
+      expect(
+        await screen.findByRole("button", { name: formatDate(date) })
+      ).toBeInTheDocument();
+    }
+
+    // The window never shows more than the seven configured dates.
+    expect(
+      screen.getAllByRole("button", { name: /Nov/ })
+    ).toHaveLength(dates.length);
+  });
+
+  it("shows an archived notice and no booking flow for a retired movie", async () => {
+    getMovie.mockResolvedValue({ ...MOVIE, status: "ARCHIVED" });
+
+    renderMovie();
+
+    expect(
+      await screen.findByText(/This movie is no longer in theatres/i)
+    ).toBeInTheDocument();
+
+    expect(screen.getByText(/No longer bookable/i)).toBeInTheDocument();
+
+    // The booking steps are not offered for a retired movie.
+    expect(screen.queryByText("Book tickets")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Hyderabad" })
+    ).not.toBeInTheDocument();
+
+    // A retired movie never triggers a discovery request.
+    expect(getMovieCities).not.toHaveBeenCalled();
+    expect(getMovieTheatres).not.toHaveBeenCalled();
+    expect(getMovieShowDates).not.toHaveBeenCalled();
+    expect(getMovieShowTimes).not.toHaveBeenCalled();
+  });
+
+  it("still shows the metadata of a retired movie", async () => {
+    getMovie.mockResolvedValue({ ...MOVIE, status: "ARCHIVED" });
+
+    renderMovie();
+
+    expect(
+      await screen.findByRole("heading", { name: "Interstellar" })
+    ).toBeInTheDocument();
+
+    expect(screen.getByText(/A team travels through a wormhole/i)).toBeInTheDocument();
   });
 });

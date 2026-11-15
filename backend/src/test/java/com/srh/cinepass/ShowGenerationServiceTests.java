@@ -1,6 +1,5 @@
 package com.srh.cinepass;
 
-import com.srh.cinepass.entity.Location;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.entity.Show;
 import com.srh.cinepass.entity.ShowStatus;
@@ -183,14 +182,5 @@ class ShowGenerationServiceTests extends TicketTestSupport {
         for (Show show : shows) {
             assertThat(seatRepository.countByShowId(show.getId())).isEqualTo(8);
         }
-    }
-
-    private Theatre createAdminTheatre(String name, int totalSeats) {
-
-        Location location = createLocation("Admin City");
-
-        Theatre theatre = new Theatre(name, totalSeats, location);
-
-        return theatreRepository.saveAndFlush(theatre);
     }
 }
