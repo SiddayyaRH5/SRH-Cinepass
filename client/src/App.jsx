@@ -39,6 +39,7 @@ import OwnerDashboard from "./pages/TheatreOwner/OwnerDashboard";
 
 import TheatreVerificationAdmin from "./pages/Admin/TheatreVerificationAdmin";
 import StaffManagement from "./pages/Admin/StaffManagement";
+import Automation from "./pages/Admin/Automation";
 
 import { LocationProvider } from "./lib/LocationContext";
 import { useAuth } from "./context/AuthContext";
@@ -336,6 +337,11 @@ function Shell() {
           <Route
             path="staff"
             element={<StaffManagement />}
+          />
+
+          <Route
+            path="automation"
+            element={<Automation />}
           />
 
         </Route>

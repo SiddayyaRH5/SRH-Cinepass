@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * statistics are recorded for the administrator.</p>
  */
 @SpringBootTest(properties = {
+        "app.shows.scheduler.enabled=true",
         "app.movies.sync.enabled=false"
 })
 class DailyAutomationServiceTests extends TicketTestSupport {

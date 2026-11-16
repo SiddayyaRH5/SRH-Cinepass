@@ -9,6 +9,7 @@ import {
   Ticket,
   ScanLine,
   Settings,
+  Bot,
 } from "lucide-react";
 
 const items = [
@@ -47,6 +48,11 @@ const items = [
     to: "/admin/staff",
     label: "Staff access",
     icon: ScanLine,
+  },
+  {
+    to: "/admin/automation",
+    label: "Automation",
+    icon: Bot,
   },
 ];
 

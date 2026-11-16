@@ -6,6 +6,7 @@ import com.srh.cinepass.repository.AutomationRunRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -46,13 +47,16 @@ public class DailyAutomationService {
     private final AutomationRunRepository automationRunRepository;
     private final Clock clock;
 
+    private final boolean schedulerEnabled;
+
     public DailyAutomationService(
             ShowGenerationLeaseService leaseService,
             MovieCatalogueSyncService catalogueSyncService,
             MovieLifecycleService lifecycleService,
             ShowGenerationService showGenerationService,
             AutomationRunRepository automationRunRepository,
-            Clock clock) {
+            Clock clock,
+            @Value("${app.shows.scheduler.enabled:true}") boolean schedulerEnabled) {
 
         this.leaseService = leaseService;
         this.catalogueSyncService = catalogueSyncService;
@@ -60,6 +64,7 @@ public class DailyAutomationService {
         this.showGenerationService = showGenerationService;
         this.automationRunRepository = automationRunRepository;
         this.clock = clock;
+        this.schedulerEnabled = schedulerEnabled;
     }
 
     /**
@@ -71,6 +76,19 @@ public class DailyAutomationService {
     public AutomationRun runDailyAutomation(String triggerType) {
 
         LocalDateTime startedAt = LocalDateTime.now(clock);
+
+        /*
+         * The scheduler switch is the master gate for the daily automation.
+         * When it is disabled, neither the scheduled job nor a manual
+         * invocation may perform any write. The run is still recorded so the
+         * administrator can see that it was skipped.
+         */
+        if (!schedulerEnabled) {
+            log.info("Daily automation skipped: scheduler is disabled");
+
+            return record(startedAt, triggerType, AutomationRun.OUTCOME_SKIPPED,
+                    "scheduler disabled", null, null, null);
+        }
 
         log.info("Daily automation started (trigger={})", triggerType);
 

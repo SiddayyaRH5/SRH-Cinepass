@@ -1,5 +1,6 @@
 package com.srh.cinepass.controller;
 
+import com.srh.cinepass.dto.AutomationConfigStatus;
 import com.srh.cinepass.dto.AutomationRunView;
 import com.srh.cinepass.dto.MovieAdminView;
 import com.srh.cinepass.dto.MovieSyncStatusView;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
@@ -36,14 +38,33 @@ public class MovieAdminController {
     private final DailyAutomationService dailyAutomationService;
     private final AutomationRunRepository automationRunRepository;
 
+    private final boolean schedulerEnabled;
+    private final boolean cleanupEnabled;
+    private final boolean tmdbSyncEnabled;
+    private final boolean retirementEnabled;
+    private final boolean ticketBackfillEnabled;
+    private final int horizonDays;
+
     public MovieAdminController(
             MovieAdminService movieAdminService,
             DailyAutomationService dailyAutomationService,
-            AutomationRunRepository automationRunRepository) {
+            AutomationRunRepository automationRunRepository,
+            @Value("${app.shows.scheduler.enabled:true}") boolean schedulerEnabled,
+            @Value("${app.shows.cleanup.enabled:true}") boolean cleanupEnabled,
+            @Value("${app.movies.sync.enabled:true}") boolean tmdbSyncEnabled,
+            @Value("${app.movies.lifecycle.retirement-enabled:true}") boolean retirementEnabled,
+            @Value("${app.tickets.backfill-on-startup:true}") boolean ticketBackfillEnabled,
+            @Value("${app.shows.scheduler.horizon-days:7}") int horizonDays) {
 
         this.movieAdminService = movieAdminService;
         this.dailyAutomationService = dailyAutomationService;
         this.automationRunRepository = automationRunRepository;
+        this.schedulerEnabled = schedulerEnabled;
+        this.cleanupEnabled = cleanupEnabled;
+        this.tmdbSyncEnabled = tmdbSyncEnabled;
+        this.retirementEnabled = retirementEnabled;
+        this.ticketBackfillEnabled = ticketBackfillEnabled;
+        this.horizonDays = horizonDays;
     }
 
     // ============================================================
@@ -66,6 +87,22 @@ public class MovieAdminController {
     @GetMapping("/movies/sync-status")
     public MovieSyncStatusView syncStatus() {
         return movieAdminService.syncStatus();
+    }
+
+    /**
+     * Safe, non-secret view of the automation configuration. Only boolean
+     * flags, numeric knobs and the timezone are returned.
+     */
+    @GetMapping("/automation/config")
+    public AutomationConfigStatus automationConfig() {
+        return new AutomationConfigStatus(
+                schedulerEnabled,
+                cleanupEnabled,
+                tmdbSyncEnabled,
+                retirementEnabled,
+                ticketBackfillEnabled,
+                horizonDays,
+                "Asia/Kolkata");
     }
 
     // ============================================================

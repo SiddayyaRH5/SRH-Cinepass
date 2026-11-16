@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * completes normally.
  */
 @SpringBootTest(properties = {
+        "app.shows.scheduler.enabled=true",
         "app.movies.sync.enabled=true"
 })
 class DailyAutomationFailureTests extends TicketTestSupport {

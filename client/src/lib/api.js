@@ -188,4 +188,53 @@ export const rejectTheatreVerification = (id, reason) =>
     body: JSON.stringify({ reason }),
   });
 
+// ADMIN AUTOMATION
+export const getAdminMovies = () =>
+  apiFetch("/api/admin/movies");
+
+export const getAdminImportedMovies = () =>
+  apiFetch("/api/admin/movies/imported");
+
+export const getAdminSyncStatus = () =>
+  apiFetch("/api/admin/movies/sync-status");
+
+export const excludeMovie = (id, excluded, reason) =>
+  apiFetch(`/api/admin/movies/${id}/exclude`, {
+    method: "POST",
+    body: JSON.stringify({ excluded, reason }),
+  });
+
+export const protectMovie = (id, protectedMovie) =>
+  apiFetch(`/api/admin/movies/${id}/protect`, {
+    method: "POST",
+    body: JSON.stringify({ protectedMovie }),
+  });
+
+export const extendMovie = (id, activeUntil) =>
+  apiFetch(`/api/admin/movies/${id}/extend`, {
+    method: "POST",
+    body: JSON.stringify({ activeUntil }),
+  });
+
+export const reactivateMovie = (id) =>
+  apiFetch(`/api/admin/movies/${id}/reactivate`, {
+    method: "POST",
+  });
+
+export const archiveMovie = (id) =>
+  apiFetch(`/api/admin/movies/${id}/archive`, {
+    method: "POST",
+  });
+
+export const getAutomationRuns = () =>
+  apiFetch("/api/admin/automation/runs");
+
+export const getAutomationConfig = () =>
+  apiFetch("/api/admin/automation/config");
+
+export const runAutomation = () =>
+  apiFetch("/api/admin/automation/run", {
+    method: "POST",
+  });
+
 export { API_BASE };
