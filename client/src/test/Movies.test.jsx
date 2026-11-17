@@ -2,6 +2,7 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import Movies from "../pages/Movies";
 
@@ -36,10 +37,15 @@ const CATALOGUE = [
 ];
 
 function renderMovies() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter initialEntries={["/movies"]}>
-      <Movies />
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/movies"]}>
+        <Movies />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 

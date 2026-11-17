@@ -14,6 +14,7 @@ vi.mock("../lib/api", async () => {
   return {
     ...actual,
     getMovie: vi.fn(),
+    getMovies: vi.fn(),
     getMovieCities: vi.fn(),
     getMovieTheatres: vi.fn(),
     getMovieShowDates: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock("../lib/api", async () => {
 
 import {
   getMovie,
+  getMovies,
   getMovieCities,
   getMovieShowDates,
   getMovieShowTimes,
@@ -56,6 +58,7 @@ describe("Movie details booking flow", () => {
     localStorage.clear();
 
     getMovie.mockResolvedValue(MOVIE);
+    getMovies.mockResolvedValue([]);
     getMovieCities.mockResolvedValue([
       { id: 10, city: "Hyderabad", state: "Telangana", country: "India" },
     ]);

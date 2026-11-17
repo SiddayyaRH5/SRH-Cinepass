@@ -2,6 +2,8 @@ package com.srh.cinepass.controller;
 
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.service.MovieService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,14 +20,16 @@ public class MovieController {
         this.movieService = movieService;
     }
 
-    // GET all movies
+    // GET all movies (cached)
     @GetMapping
+    @Cacheable(value = "movies", unless = "#result == null || #result.isEmpty()")
     public List<Movie> getAllMovies() {
         return movieService.getAllMovies();
     }
 
-    // GET movie by ID
+    // GET movie by ID (cached)
     @GetMapping("/{id}")
+    @Cacheable(value = "movie-details", key = "#id", unless = "#result == null")
     public ResponseEntity<Movie> getMovieById(@PathVariable Long id) {
 
         return movieService.getMovieById(id)
@@ -33,8 +37,9 @@ public class MovieController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ADD movie
+    // ADD movie (evict cache)
     @PostMapping
+    @CacheEvict(value = "movies", allEntries = true)
     public ResponseEntity<Movie> addMovie(@RequestBody Movie movie) {
 
         Movie savedMovie = movieService.addMovie(movie);
@@ -42,8 +47,9 @@ public class MovieController {
         return ResponseEntity.ok(savedMovie);
     }
 
-    // UPDATE movie
+    // UPDATE movie (evict cache)
     @PutMapping("/{id}")
+    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
     public ResponseEntity<Movie> updateMovie(
             @PathVariable Long id,
             @RequestBody Movie movieDetails) {
@@ -60,8 +66,9 @@ public class MovieController {
         }
     }
 
-    // DELETE movie
+    // DELETE movie (evict cache)
     @DeleteMapping("/{id}")
+    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
     public ResponseEntity<?> deleteMovie(@PathVariable Long id) {
 
         try {

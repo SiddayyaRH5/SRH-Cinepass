@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertCircle, ChevronDown, Filter, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { getMovies } from "../lib/api";
 import MovieCard from "../components/MovieCard";
@@ -64,11 +65,6 @@ function CompactSelect({ value, onChange, options, label }) {
 
 export default function Movies() {
   const [params, setParams] = useSearchParams();
-  const [movies, setMovies] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState("");
-  const [retryToken, setRetryToken] = React.useState(0);
-
   const [query, setQuery] = React.useState(params.get("search") || "");
   const [genre, setGenre] = React.useState(params.get("genre") || "All");
   const [language, setLanguage] = React.useState(params.get("language") || "All");
@@ -79,27 +75,18 @@ export default function Movies() {
 
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
+  const { data: moviesData, isLoading, isError, error: queryError, refetch } = useQuery({
+    queryKey: ["movies"],
+    queryFn: async () => {
+      const data = await getMovies();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 1000 * 60 * 3,
+  });
 
-    getMovies()
-      .then((data) => {
-        if (!active) return;
-        setMovies(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        if (active) setError(err?.message || "Unable to load movies.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [retryToken]);
+  const movies = React.useMemo(() => moviesData || [], [moviesData]);
+  const loading = isLoading;
+  const error = isError ? (queryError?.message || "Unable to load movies.") : "";
 
   React.useEffect(() => {
     const next = {};
@@ -402,7 +389,7 @@ export default function Movies() {
             </span>
             <button
               type="button"
-              onClick={() => setRetryToken((v) => v + 1)}
+              onClick={() => refetch()}
               className="flex items-center gap-1.5 rounded-lg border border-red-300/30 px-2.5 py-1 text-xs text-red-100 transition hover:bg-red-300/10"
             >
               <RefreshCw size={12} />
