@@ -19,6 +19,48 @@ export function formatFullDate(date) {
   });
 }
 
+const LANGUAGE_NAMES = {
+  en: "English",
+  hi: "Hindi",
+  te: "Telugu",
+  kn: "Kannada",
+  ta: "Tamil",
+  ml: "Malayalam",
+  mr: "Marathi",
+  bn: "Bengali",
+  pa: "Punjabi",
+  gu: "Gujarati",
+  or: "Odia",
+  ur: "Urdu",
+  fr: "French",
+  es: "Spanish",
+  de: "German",
+  ja: "Japanese",
+  ko: "Korean",
+  zh: "Chinese",
+  it: "Italian",
+  pt: "Portuguese",
+  ru: "Russian",
+  ar: "Arabic",
+  tr: "Turkish",
+  nl: "Dutch",
+  sv: "Swedish",
+  pl: "Polish",
+  th: "Thai",
+  id: "Indonesian",
+  vi: "Vietnamese",
+};
+
+export function formatLanguage(code) {
+  if (!code) return null;
+  const trimmed = String(code).trim();
+  if (!trimmed) return null;
+  // Already a full name (not a 2-letter code)
+  if (trimmed.length > 2) return trimmed;
+  const lower = trimmed.toLowerCase();
+  return LANGUAGE_NAMES[lower] || trimmed.toUpperCase();
+}
+
 export function formatDuration(minutes) {
   if (!minutes || Number.isNaN(Number(minutes))) return "Duration unavailable";
   const total = Number(minutes);

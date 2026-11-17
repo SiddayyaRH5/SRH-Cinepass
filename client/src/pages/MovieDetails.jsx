@@ -22,7 +22,7 @@ import {
 } from "../lib/api";
 import Loading from "../components/Loading";
 import { useLocationContext } from "../lib/LocationContext";
-import { formatDate, formatDuration, formatFullDate, formatTime, money } from "../lib/formatters";
+import { formatDate, formatDuration, formatFullDate, formatLanguage, formatTime, money } from "../lib/formatters";
 
 // ---------------------------------------------------------------------------
 // Small presentational helpers. Kept local so the booking panel stays readable
@@ -685,7 +685,7 @@ export default function MovieDetails() {
                         className="shrink-0 text-cyan-300/70"
                       />
                       <span className="text-white/70">
-                        {movie.language || movie.original_language}
+                        {formatLanguage(movie.language || movie.original_language)}
                       </span>
                     </span>
                   </>
