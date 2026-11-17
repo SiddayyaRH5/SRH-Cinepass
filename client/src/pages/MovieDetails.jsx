@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
 
 import {
   getMovie,
+  getMovies,
   getMovieCities,
   getMovieShowDates,
   getMovieShowTimes,
@@ -141,6 +142,8 @@ export default function MovieDetails() {
   const [movieLoaded, setMovieLoaded] = React.useState(false);
   const [showAllCast, setShowAllCast] = React.useState(false);
   const [playingTrailer, setPlayingTrailer] = React.useState(false);
+  const [recommendations, setRecommendations] = React.useState([]);
+  const [recsLoading, setRecsLoading] = React.useState(false);
 
   const [retryToken, setRetryToken] = React.useState(0);
 
@@ -199,6 +202,72 @@ export default function MovieDetails() {
       active = false;
     };
   }, [id, retryToken]);
+
+  // Recommendations: fetch the public catalogue and rank by genre overlap
+  // and language match. Archived movies are already excluded server-side.
+  React.useEffect(() => {
+    if (!movieLoaded || !movie) return;
+
+    let active = true;
+    setRecsLoading(true);
+
+    getMovies()
+      .then((data) => {
+        if (!active) return;
+
+        const list = Array.isArray(data) ? data : [];
+        const currentId = movie.id;
+        const currentGenres = new Set(
+          (movie.genre || "")
+            .split(",")
+            .map((g) => g.trim().toLowerCase())
+            .filter(Boolean)
+        );
+        const currentLang = (movie.language || movie.original_language || "")
+          .toLowerCase();
+
+        const scored = list
+          .filter((m) => m.id !== currentId)
+          .map((m) => {
+            const genres = (m.genre || "")
+              .split(",")
+              .map((g) => g.trim().toLowerCase())
+              .filter(Boolean);
+            const genreOverlap = genres.filter((g) =>
+              currentGenres.has(g)
+            ).length;
+            const langMatch =
+              (m.language || m.original_language || "").toLowerCase() ===
+              currentLang
+                ? 2
+                : 0;
+            const score = genreOverlap + langMatch;
+            return { movie: m, score };
+          })
+          .filter((s) => s.score > 0)
+          .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return (
+              Number(b.movie.rating || b.movie.vote_average || 0) -
+              Number(a.movie.rating || a.movie.vote_average || 0)
+            );
+          })
+          .slice(0, 12)
+          .map((s) => s.movie);
+
+        setRecommendations(scored);
+      })
+      .catch(() => {
+        if (active) setRecommendations([]);
+      })
+      .finally(() => {
+        if (active) setRecsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [movieLoaded, movie]);
 
   // Cities that currently have bookable shows for this movie.
   React.useEffect(() => {
@@ -852,6 +921,115 @@ export default function MovieDetails() {
           </section>
         );
       })()}
+
+      {/* =====================================================
+          RECOMMENDATIONS
+      ===================================================== */}
+
+      <section className="mx-auto max-w-[1440px] px-5 pt-4 pb-10 sm:px-8">
+        <div className="mb-5 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
+              Discover
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold">
+              You May Also Like
+            </h2>
+            <p className="mt-1 text-xs text-white/35">
+              More movies worth watching.
+            </p>
+          </div>
+        </div>
+
+        {recsLoading ? (
+          <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-36 shrink-0 animate-pulse sm:w-40"
+              >
+                <div className="aspect-[2/3] rounded-xl bg-white/[.06]" />
+                <div className="mt-2 h-3 rounded bg-white/[.06]" />
+                <div className="mt-1 h-2 w-2/3 rounded bg-white/[.04]" />
+              </div>
+            ))}
+          </div>
+        ) : recommendations.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[.03] px-5 py-8 text-center text-sm text-white/40">
+            No recommendations available right now.
+          </div>
+        ) : (
+          <div className="relative">
+            <div
+              className="flex gap-4 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory"
+              style={{ scrollbarWidth: "thin" }}
+            >
+              {recommendations.map((m) => {
+                const poster = m.posterUrl || m.poster_path;
+                const rating = Number(m.rating ?? m.vote_average ?? 0);
+                const year = (m.releaseDate || m.release_date || "")
+                  .slice(0, 4);
+                const genre =
+                  m.genre ||
+                  (Array.isArray(m.genres)
+                    ? m.genres.map((g) => g.name).join(", ")
+                    : "");
+                const language = m.language || m.original_language || "";
+
+                return (
+                  <Link
+                    key={m.id ?? m._id}
+                    to={`/movie/${m.id ?? m._id}`}
+                    className="group w-36 shrink-0 snap-start sm:w-40"
+                  >
+                    <article className="overflow-hidden rounded-xl border border-white/[.08] bg-white/[.03] transition-all duration-300 group-hover:-translate-y-1 group-hover:border-cyan-300/30 group-hover:shadow-[0_12px_30px_rgba(0,0,0,.35)]">
+                      <div className="relative aspect-[2/3] overflow-hidden bg-white/[.04]">
+                        {poster ? (
+                          <img
+                            src={poster}
+                            alt={m.title}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="grid h-full place-items-center text-[10px] text-white/20">
+                            No poster
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        {rating > 0 && (
+                          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur-md">
+                            <Star size={10} className="fill-yellow-300 text-yellow-300" />
+                            <span className="text-yellow-200">
+                              {rating.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <h3 className="truncate text-xs font-semibold text-white/90 sm:text-sm">
+                          {m.title}
+                        </h3>
+                        <p className="mt-0.5 truncate text-[10px] text-white/40">
+                          {genre || language || "Cinema"}
+                        </p>
+                        <p className="mt-1.5 flex items-center justify-between text-[10px] text-white/30">
+                          <span>{year || "—"}</span>
+                          {language && (
+                            <span className="truncate text-cyan-300/60">
+                              {language}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </article>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* =====================================================
           BOOKING FLOW: CITY -> THEATRE -> DATE -> SHOWTIME
