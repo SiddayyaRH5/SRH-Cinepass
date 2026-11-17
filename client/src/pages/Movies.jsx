@@ -6,9 +6,9 @@ import MovieCard from "../components/MovieCard";
 import Loading from "../components/Loading";
 
 const SORT_OPTIONS = [
-  { value: "latest", label: "Latest releases" },
-  { value: "rated", label: "Highest rated" },
-  { value: "alpha", label: "Alphabetical" },
+  { value: "latest", label: "Latest" },
+  { value: "rated", label: "Top rated" },
+  { value: "alpha", label: "A–Z" },
   { value: "recent", label: "Recently added" },
 ];
 
@@ -21,7 +21,7 @@ const RATING_OPTIONS = [
 ];
 
 const AVAILABILITY_OPTIONS = [
-  { value: "all", label: "All movies" },
+  { value: "all", label: "All" },
   { value: "released", label: "Released" },
   { value: "upcoming", label: "Upcoming" },
 ];
@@ -39,30 +39,26 @@ function FilterChip({ label, onRemove }) {
   );
 }
 
-function FilterSelect({ label, value, onChange, options }) {
+function CompactSelect({ value, onChange, options, label }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/40">
-        {label}
-      </span>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-white/[.04] px-3 pr-9 text-sm text-white/80 outline-none transition focus:border-cyan-300/40"
-        >
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-[#0a0e14]">
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          size={14}
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/40"
-        />
-      </div>
-    </label>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className="h-9 appearance-none rounded-full border border-white/10 bg-white/[.04] pl-3 pr-8 text-xs text-white/70 outline-none transition hover:border-white/20 focus:border-cyan-300/40"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} className="bg-[#0a0e14]">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={12}
+        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40"
+      />
+    </div>
   );
 }
 
@@ -105,7 +101,6 @@ export default function Movies() {
     };
   }, [retryToken]);
 
-  // Sync URL params
   React.useEffect(() => {
     const next = {};
     if (query) next.search = query;
@@ -189,7 +184,6 @@ export default function Movies() {
       return true;
     });
 
-    // Sorting
     result = [...result].sort((a, b) => {
       if (sortBy === "latest") {
         const da = a.releaseDate || a.release_date || "";
@@ -237,40 +231,40 @@ export default function Movies() {
 
   const hasActiveFilters = activeChips.length > 0 || sortBy !== "latest";
 
-  const FilterPanel = (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-      <FilterSelect
+  const FilterRow = (
+    <div className="flex flex-wrap items-center gap-2">
+      <CompactSelect
         label="Genre"
         value={genre}
         onChange={setGenre}
         options={genres.map((g) => ({ value: g, label: g }))}
       />
-      <FilterSelect
+      <CompactSelect
         label="Language"
         value={language}
         onChange={setLanguage}
         options={languages.map((l) => ({ value: l, label: l }))}
       />
-      <FilterSelect
-        label="Release year"
+      <CompactSelect
+        label="Year"
         value={year}
         onChange={setYear}
         options={years.map((y) => ({ value: y, label: y }))}
       />
-      <FilterSelect
-        label="Minimum rating"
+      <CompactSelect
+        label="Rating"
         value={minRating}
         onChange={(v) => setMinRating(Number(v))}
         options={RATING_OPTIONS}
       />
-      <FilterSelect
+      <CompactSelect
         label="Availability"
         value={availability}
         onChange={setAvailability}
         options={AVAILABILITY_OPTIONS}
       />
-      <FilterSelect
-        label="Sort by"
+      <CompactSelect
+        label="Sort"
         value={sortBy}
         onChange={setSortBy}
         options={SORT_OPTIONS}
@@ -293,7 +287,7 @@ export default function Movies() {
         </div>
 
         {/* Search bar */}
-        <div className="mt-8 flex flex-col gap-3 lg:flex-row">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search
               size={18}
@@ -303,7 +297,7 @@ export default function Movies() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by movie title..."
-              className="h-12 w-full rounded-xl border border-white/10 bg-white/[.04] pl-11 pr-11 outline-none transition focus:border-cyan-300/40 focus:bg-white/[.06]"
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/[.04] pl-11 pr-11 text-sm outline-none transition focus:border-cyan-300/40 focus:bg-white/[.06]"
             />
             {query && (
               <button
@@ -316,11 +310,10 @@ export default function Movies() {
             )}
           </div>
 
-          {/* Mobile filter toggle */}
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="flex h-12 items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 text-sm text-white/60 transition hover:border-cyan-300/30 hover:text-white lg:hidden"
+            className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 text-sm text-white/60 transition hover:border-cyan-300/30 hover:text-white sm:hidden"
           >
             <Filter size={16} />
             Filters
@@ -332,38 +325,32 @@ export default function Movies() {
           </button>
         </div>
 
-        {/* Desktop filter panel */}
-        <div className="mt-6 hidden lg:block">
-          <div className="rounded-2xl border border-white/10 bg-white/[.025] p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-                <SlidersHorizontal size={14} />
-                Filters &amp; sorting
-              </div>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="text-xs text-cyan-300/70 transition hover:text-cyan-200"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-            {FilterPanel}
+        {/* Desktop compact filter bar */}
+        <div className="mt-4 hidden sm:block">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[.06] bg-white/[.02] px-3 py-2.5">
+            {FilterRow}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="ml-auto text-xs text-cyan-300/70 transition hover:text-cyan-200"
+              >
+                Clear all
+              </button>
+            )}
           </div>
         </div>
 
         {/* Mobile filter drawer */}
         {drawerOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 z-50 sm:hidden">
             <div
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setDrawerOpen(false)}
             />
-            <div className="absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto bg-[#0a0e14] p-5 shadow-2xl">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Filters &amp; sorting</h2>
+            <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-[#0a0e14] p-5 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-base font-semibold">Filters &amp; sorting</h2>
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(false)}
@@ -372,8 +359,8 @@ export default function Movies() {
                   <X size={16} />
                 </button>
               </div>
-              {FilterPanel}
-              <div className="mt-6 flex gap-2">
+              {FilterRow}
+              <div className="mt-5 flex gap-2">
                 {hasActiveFilters && (
                   <button
                     type="button"
@@ -397,20 +384,10 @@ export default function Movies() {
 
         {/* Active filter chips */}
         {activeChips.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {activeChips.map((chip, i) => (
               <FilterChip key={i} label={chip.label} onRemove={chip.clear} />
             ))}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearAll}
-                className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-3 py-1 text-xs text-white/45 transition hover:text-white"
-              >
-                Clear all
-                <X size={12} />
-              </button>
-            )}
           </div>
         )}
 
@@ -434,7 +411,7 @@ export default function Movies() {
           </div>
         ) : (
           <>
-            <div className="mb-5 mt-10 text-sm text-white/35">
+            <div className="mb-5 mt-8 text-sm text-white/35">
               {filtered.length} movie{filtered.length !== 1 ? "s" : ""} found
             </div>
             {filtered.length > 0 ? (
