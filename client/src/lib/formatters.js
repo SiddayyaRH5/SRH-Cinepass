@@ -7,6 +7,29 @@ export function formatTime(time) {
   return `${hour}:${String(m || 0).padStart(2, "0")} ${suffix}`;
 }
 
+export function formatFullDate(date) {
+  if (!date) return "Release date unavailable";
+  const value = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(value.getTime())) return date;
+  return value.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export function formatDuration(minutes) {
+  if (!minutes || Number.isNaN(Number(minutes))) return "Duration unavailable";
+  const total = Number(minutes);
+  if (total <= 0) return "Duration unavailable";
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 export function formatDate(date) {
   if (!date) return "—";
   const value = new Date(`${date}T00:00:00`);

@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock3,
+  Globe,
   Loader2,
   MapPin,
   Play,
@@ -21,7 +22,7 @@ import {
 } from "../lib/api";
 import Loading from "../components/Loading";
 import { useLocationContext } from "../lib/LocationContext";
-import { formatDate, formatTime, money } from "../lib/formatters";
+import { formatDate, formatDuration, formatFullDate, formatTime, money } from "../lib/formatters";
 
 // ---------------------------------------------------------------------------
 // Small presentational helpers. Kept local so the booking panel stays readable
@@ -645,25 +646,50 @@ export default function MovieDetails() {
                   mt-5
                   flex
                   flex-wrap
-                  gap-x-5
+                  items-center
+                  gap-x-4
                   gap-y-3
-                  text-xs
-                  text-white/45
+                  text-sm
+                  text-white/55
                 "
               >
                 <span className="flex items-center gap-2">
-                  <CalendarDays size={15} />
-                  {formatDate(movie.releaseDate || movie.release_date)}
+                  <CalendarDays
+                    size={16}
+                    className="shrink-0 text-cyan-300/70"
+                  />
+                  <span className="text-white/70">
+                    {formatFullDate(movie.releaseDate || movie.release_date)}
+                  </span>
                 </span>
+
+                <span className="hidden h-4 w-px bg-white/10 sm:block" />
 
                 <span className="flex items-center gap-2">
-                  <Clock3 size={15} />
-                  {movie.duration || movie.runtime || "—"} min
+                  <Clock3
+                    size={16}
+                    className="shrink-0 text-cyan-300/70"
+                  />
+                  <span className="text-white/70">
+                    {formatDuration(movie.duration || movie.runtime)}
+                  </span>
                 </span>
 
-                <span>
-                  {movie.language || movie.original_language || "—"}
-                </span>
+                {(movie.language || movie.original_language) && (
+                  <>
+                    <span className="hidden h-4 w-px bg-white/10 sm:block" />
+
+                    <span className="flex items-center gap-2">
+                      <Globe
+                        size={16}
+                        className="shrink-0 text-cyan-300/70"
+                      />
+                      <span className="text-white/70">
+                        {movie.language || movie.original_language}
+                      </span>
+                    </span>
+                  </>
+                )}
               </div>
 
             </div>
