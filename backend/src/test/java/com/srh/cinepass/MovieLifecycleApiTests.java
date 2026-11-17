@@ -57,7 +57,7 @@ class MovieLifecycleApiTests extends TicketTestSupport {
     }
 
     @Test
-    void anArchivedMovieIsStillReachableThroughItsDetailLink() throws Exception {
+    void anArchivedMovieIsNotAccessibleThroughDetailLink() throws Exception {
 
         Movie archived = createMovie("Archived Movie");
 
@@ -65,9 +65,7 @@ class MovieLifecycleApiTests extends TicketTestSupport {
         movieRepository.saveAndFlush(archived);
 
         mockMvc.perform(get("/api/movies/" + archived.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(archived.getId()))
-                .andExpect(jsonPath("$.status").value("ARCHIVED"));
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -210,15 +208,48 @@ class MovieLifecycleApiTests extends TicketTestSupport {
         assertThat(movieRepository.findById(movie.getId())).isEmpty();
     }
 
-    // ============================================================
-    // Helpers
-    // ============================================================
+    @Test
+    void nonexistentMovie404IsNotCached() throws Exception {
+        Long nonexistentId = 999999L;
 
-    private Seat createSeat(Show show, String seatNumber) {
-        Seat seat = new Seat();
-        seat.setSeatNumber(seatNumber);
-        seat.setShow(show);
-        return seatRepository.saveAndFlush(seat);
+        // First call: 404
+        mockMvc.perform(get("/api/movies/" + nonexistentId))
+                .andExpect(status().isNotFound());
+
+        // Create the movie
+        Movie movie = createMovie("Previously Missing Movie");
+        movie.setTmdbId(nonexistentId);
+        movieRepository.saveAndFlush(movie);
+
+        // Second call: should find the movie (404 was not cached)
+        mockMvc.perform(get("/api/movies/" + movie.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(movie.getId()));
+    }
+
+    @Test
+    void reactivatedMovieIsAccessibleThroughDetailLink() throws Exception {
+        User admin = createUser("Reactor Admin", "ADMIN");
+
+        Movie archived = createMovie("Archived Movie");
+        archived.setStatus(MovieStatus.ARCHIVED);
+        archived.setArchivedAt(LocalDateTime.of(2026, 11, 15, 2, 0));
+        movieRepository.saveAndFlush(archived);
+
+        // Archived movie is not accessible
+        mockMvc.perform(get("/api/movies/" + archived.getId()))
+                .andExpect(status().isNotFound());
+
+        // Reactivate the movie
+        mockMvc.perform(post("/api/admin/movies/" + archived.getId() + "/reactivate")
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+
+        // Reactivated movie is now accessible
+        mockMvc.perform(get("/api/movies/" + archived.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(archived.getId()))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
     private BookingRequest requestFor(Show show, Seat seat, User user) {
@@ -228,5 +259,12 @@ class MovieLifecycleApiTests extends TicketTestSupport {
         request.setUserId(String.valueOf(user.getId()));
         request.setUserEmail(user.getEmail());
         return request;
+    }
+
+    private Seat createSeat(Show show, String seatNumber) {
+        Seat seat = new Seat();
+        seat.setSeatNumber(seatNumber);
+        seat.setShow(show);
+        return seatRepository.saveAndFlush(seat);
     }
 }

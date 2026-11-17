@@ -36,14 +36,13 @@ public class TheatreController {
 
     @GetMapping("/{id}")
     @Cacheable(value = "theatres", key = "'id:' + #id", unless = "#result == null")
-    public ResponseEntity<TheatreResponse> getTheatreById(
+    public TheatreResponse getTheatreById(
             @PathVariable Long id) {
 
         return theatreService
                 .getTheatreById(id)
                 .map(TheatreResponse::from)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(null);
     }
 
     @GetMapping("/location/{locationId}")

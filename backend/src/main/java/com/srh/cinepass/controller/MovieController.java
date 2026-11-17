@@ -1,6 +1,7 @@
 package com.srh.cinepass.controller;
 
 import com.srh.cinepass.entity.Movie;
+import com.srh.cinepass.entity.MovieStatus;
 import com.srh.cinepass.service.MovieService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -27,12 +28,13 @@ public class MovieController {
         return movieService.getAllMovies();
     }
 
-    // GET movie by ID (cached)
+    // GET movie by ID
+    // Archived movies return 404 because the service layer filters them out
+    // from the cache. The controller maps Optional.empty() to 404.
     @GetMapping("/{id}")
-    @Cacheable(value = "movie-details", key = "#id", unless = "#result == null")
     public ResponseEntity<Movie> getMovieById(@PathVariable Long id) {
-
         return movieService.getMovieById(id)
+                .filter(m -> m.getStatus() != MovieStatus.ARCHIVED)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

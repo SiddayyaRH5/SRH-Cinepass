@@ -179,7 +179,7 @@ public class MovieAdminController {
 
     /** Brings an archived movie back into the active catalogue. */
     @PostMapping("/movies/{id}/reactivate")
-    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
+    @CacheEvict(value = {"movies", "movie-details", "showtimes"}, allEntries = true)
     public ResponseEntity<?> reactivate(@PathVariable Long id) {
 
         try {
@@ -191,7 +191,7 @@ public class MovieAdminController {
 
     /** Retires a movie manually. The row and its history are preserved. */
     @PostMapping("/movies/{id}/archive")
-    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
+    @CacheEvict(value = {"movies", "movie-details", "showtimes"}, allEntries = true)
     public ResponseEntity<?> archive(@PathVariable Long id) {
 
         try {

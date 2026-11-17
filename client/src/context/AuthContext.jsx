@@ -6,6 +6,8 @@ import React, {
   useState,
 } from "react";
 
+import { queryClient } from "../lib/queryClient";
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -95,6 +97,10 @@ export function AuthProvider({ children }) {
 
     setToken(null);
     setUser(null);
+
+    // Clear cached query data to prevent stale data from being shown
+    // after logout or account switch.
+    queryClient.clear();
 
     window.dispatchEvent(
       new Event("cinepass-auth")
