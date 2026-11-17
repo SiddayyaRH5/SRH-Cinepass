@@ -5,6 +5,8 @@ import com.srh.cinepass.entity.Show;
 import com.srh.cinepass.entity.User;
 import com.srh.cinepass.service.ShowService;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -60,6 +62,7 @@ public class ShowController {
     // ============================================================
 
     @PostMapping
+    @CacheEvict(value = "showtimes", allEntries = true)
     public ResponseEntity<?> addShow(
             @RequestBody Show show,
             Authentication authentication) {
@@ -97,6 +100,7 @@ public class ShowController {
     // ============================================================
 
     @PutMapping("/{id}")
+    @CacheEvict(value = "showtimes", allEntries = true)
     public ResponseEntity<?> updateShow(
             @PathVariable Long id,
             @RequestBody Show showDetails,
@@ -162,6 +166,7 @@ public class ShowController {
     // ============================================================
 
     @DeleteMapping("/{id}")
+    @CacheEvict(value = "showtimes", allEntries = true)
     public ResponseEntity<?> deleteShow(
             @PathVariable Long id,
             Authentication authentication) {
@@ -200,6 +205,7 @@ public class ShowController {
     // ============================================================
 
     @GetMapping("/movie/{movieId}")
+    @Cacheable(value = "showtimes", key = "'movie:' + #movieId", unless = "#result == null || #result.isEmpty()")
     public List<Show> getShowsByMovie(
             @PathVariable Long movieId) {
 
@@ -212,6 +218,7 @@ public class ShowController {
     // ============================================================
 
     @GetMapping("/theatre/{theatreId}")
+    @Cacheable(value = "showtimes", key = "'theatre:' + #theatreId", unless = "#result == null || #result.isEmpty()")
     public List<Show> getShowsByTheatre(
             @PathVariable Long theatreId) {
 
@@ -226,6 +233,7 @@ public class ShowController {
     // ============================================================
 
     @GetMapping("/date/{date}")
+    @Cacheable(value = "showtimes", key = "'date:' + #date", unless = "#result == null || #result.isEmpty()")
     public List<Show> getShowsByDate(
             @PathVariable LocalDate date) {
 
@@ -238,6 +246,7 @@ public class ShowController {
     // ============================================================
 
     @GetMapping("/movie/{movieId}/date/{date}")
+    @Cacheable(value = "showtimes", key = "'movie-date:' + #movieId + ':' + #date", unless = "#result == null || #result.isEmpty()")
     public List<Show> getShowsByMovieAndDate(
             @PathVariable Long movieId,
             @PathVariable LocalDate date) {
@@ -254,6 +263,7 @@ public class ShowController {
     // ============================================================
 
     @GetMapping("/theatre/{theatreId}/date/{date}")
+    @Cacheable(value = "showtimes", key = "'theatre-date:' + #theatreId + ':' + #date", unless = "#result == null || #result.isEmpty()")
     public List<Show> getShowsByTheatreAndDate(
             @PathVariable Long theatreId,
             @PathVariable LocalDate date) {
@@ -267,6 +277,9 @@ public class ShowController {
     // ============================================================
     // GET SEATS FOR SHOW
     // PUBLIC
+    // ============================================================
+    // NOTE: Seat availability is intentionally NOT cached — seat
+    // availability must always reflect live transactional state.
     // ============================================================
 
     @GetMapping("/{showId}/seats")

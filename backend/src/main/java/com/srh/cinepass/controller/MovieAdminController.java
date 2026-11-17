@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
@@ -111,6 +112,7 @@ public class MovieAdminController {
 
     /** Includes or excludes a movie from automatic show generation. */
     @PostMapping("/movies/{id}/exclude")
+    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
     public ResponseEntity<?> exclude(
             @PathVariable Long id,
             @RequestBody(required = false) ExcludeRequest request) {
@@ -129,6 +131,7 @@ public class MovieAdminController {
 
     /** Protects a movie from the automatic retirement job. */
     @PostMapping("/movies/{id}/protect")
+    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
     public ResponseEntity<?> protect(
             @PathVariable Long id,
             @RequestBody(required = false) ProtectRequest request) {
@@ -147,6 +150,7 @@ public class MovieAdminController {
 
     /** Extends the active period of a movie. */
     @PostMapping("/movies/{id}/extend")
+    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
     public ResponseEntity<?> extend(
             @PathVariable Long id,
             @RequestBody ExtendRequest request) {
@@ -175,6 +179,7 @@ public class MovieAdminController {
 
     /** Brings an archived movie back into the active catalogue. */
     @PostMapping("/movies/{id}/reactivate")
+    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
     public ResponseEntity<?> reactivate(@PathVariable Long id) {
 
         try {
@@ -186,6 +191,7 @@ public class MovieAdminController {
 
     /** Retires a movie manually. The row and its history are preserved. */
     @PostMapping("/movies/{id}/archive")
+    @CacheEvict(value = {"movies", "movie-details"}, allEntries = true)
     public ResponseEntity<?> archive(@PathVariable Long id) {
 
         try {
@@ -209,6 +215,7 @@ public class MovieAdminController {
 
     /** Triggers the daily automation immediately. */
     @PostMapping("/automation/run")
+    @CacheEvict(value = {"movies", "movie-details", "theatres"}, allEntries = true)
     public AutomationRunView runAutomation() {
         AutomationRun run = dailyAutomationService.runDailyAutomation(
                 AutomationRun.TRIGGER_MANUAL);

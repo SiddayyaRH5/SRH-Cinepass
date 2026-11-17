@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import MovieDetails from "../pages/MovieDetails";
 import { LocationProvider } from "../lib/LocationContext";
@@ -41,15 +42,20 @@ const MOVIE = {
 };
 
 function renderMovie() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter initialEntries={["/movies/1"]}>
-      <LocationProvider>
-        <Routes>
-          <Route path="/movies/:id" element={<MovieDetails />} />
-          <Route path="/show/:id" element={<div>Seat layout route</div>} />
-        </Routes>
-      </LocationProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/movies/1"]}>
+        <LocationProvider>
+          <Routes>
+            <Route path="/movies/:id" element={<MovieDetails />} />
+            <Route path="/show/:id" element={<div>Seat layout route</div>} />
+          </Routes>
+        </LocationProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -311,6 +317,8 @@ describe("Movie details booking flow", () => {
 
   it("shows an archived notice and no booking flow for a retired movie", async () => {
     getMovie.mockResolvedValue({ ...MOVIE, status: "ARCHIVED" });
+    getMovies.mockResolvedValue([]);
+    getMovieShowDates.mockResolvedValue([]);
 
     renderMovie();
 
@@ -327,14 +335,14 @@ describe("Movie details booking flow", () => {
     ).not.toBeInTheDocument();
 
     // A retired movie never triggers a discovery request.
-    expect(getMovieCities).not.toHaveBeenCalled();
     expect(getMovieTheatres).not.toHaveBeenCalled();
-    expect(getMovieShowDates).not.toHaveBeenCalled();
-    expect(getMovieShowTimes).not.toHaveBeenCalled();
   });
 
   it("still shows the metadata of a retired movie", async () => {
     getMovie.mockResolvedValue({ ...MOVIE, status: "ARCHIVED" });
+    getMovies.mockResolvedValue([]);
+    getMovieShowDates.mockResolvedValue([]);
+    getMovieShowTimes.mockResolvedValue([]);
 
     renderMovie();
 

@@ -6,6 +6,8 @@ import com.srh.cinepass.entity.User;
 import com.srh.cinepass.exception.TicketAccessDeniedException;
 import com.srh.cinepass.service.TheatreService;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,6 +26,7 @@ public class TheatreController {
     }
 
     @GetMapping
+    @Cacheable(value = "theatres", key = "'all'", unless = "#result == null || #result.isEmpty()")
     public List<TheatreResponse> getAllTheatres() {
         return theatreService.getAllTheatres()
                 .stream()
@@ -32,6 +35,7 @@ public class TheatreController {
     }
 
     @GetMapping("/{id}")
+    @Cacheable(value = "theatres", key = "'id:' + #id", unless = "#result == null")
     public ResponseEntity<TheatreResponse> getTheatreById(
             @PathVariable Long id) {
 
@@ -43,6 +47,7 @@ public class TheatreController {
     }
 
     @GetMapping("/location/{locationId}")
+    @Cacheable(value = "theatres", key = "'loc:' + #locationId", unless = "#result == null || #result.isEmpty()")
     public List<TheatreResponse> getTheatresByLocation(
             @PathVariable Long locationId) {
 
@@ -87,6 +92,7 @@ public class TheatreController {
     }
 
     @PostMapping
+    @CacheEvict(value = "theatres", allEntries = true)
     public ResponseEntity<?> addTheatre(
             @RequestBody Theatre theatre,
             Authentication authentication) {
@@ -119,6 +125,7 @@ public class TheatreController {
     }
 
     @PutMapping("/{id}")
+    @CacheEvict(value = "theatres", allEntries = true)
     public ResponseEntity<?> updateTheatre(
             @PathVariable Long id,
             @RequestBody Theatre theatreDetails,
@@ -153,6 +160,7 @@ public class TheatreController {
     }
 
     @DeleteMapping("/{id}")
+    @CacheEvict(value = "theatres", allEntries = true)
     public ResponseEntity<?> deleteTheatre(
             @PathVariable Long id,
             Authentication authentication) {

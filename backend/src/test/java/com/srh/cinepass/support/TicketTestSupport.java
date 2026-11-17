@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -52,6 +53,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class TicketTestSupport {
 
     private static final AtomicInteger SEQUENCE = new AtomicInteger();
+
+    @Autowired
+    protected CacheManager cacheManager;
 
     @Autowired
     protected MockMvc mockMvc;
@@ -120,6 +124,9 @@ public abstract class TicketTestSupport {
         locationRepository.deleteAll();
         movieRepository.deleteAll();
         userRepository.deleteAll();
+
+        // Clear all caches to ensure test isolation
+        cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).clear());
 
         /*
          * The generation lease is a singleton row that carries an expiry

@@ -1,4 +1,5 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -24,6 +25,8 @@ import {
 import Loading from "../components/Loading";
 import { useLocationContext } from "../lib/LocationContext";
 import { formatDate, formatDuration, formatFullDate, formatLanguage, formatTime, money } from "../lib/formatters";
+
+const MOVIE_DETAILS_QUERY_KEY = ["movies", "detail"];
 
 // ---------------------------------------------------------------------------
 // Small presentational helpers. Kept local so the booking panel stays readable
@@ -135,17 +138,21 @@ export default function MovieDetails() {
   const navigate = useNavigate();
   const { selectedLocation } = useLocationContext();
 
-  const [movie, setMovie] = React.useState(null);
-  const [movieLoading, setMovieLoading] = React.useState(true);
-  const [movieError, setMovieError] = React.useState("");
+  const { data: movie, isLoading: movieLoading, isError: movieError, refetch: refetchMovie } = useQuery({
+    queryKey: ["movies", "detail", id],
+    queryFn: async () => {
+      const data = await getMovie(id);
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!id,
+  });
+
   const [archived, setArchived] = React.useState(false);
-  const [movieLoaded, setMovieLoaded] = React.useState(false);
   const [showAllCast, setShowAllCast] = React.useState(false);
   const [playingTrailer, setPlayingTrailer] = React.useState(false);
   const [recommendations, setRecommendations] = React.useState([]);
   const [recsLoading, setRecsLoading] = React.useState(false);
-
-  const [retryToken, setRetryToken] = React.useState(0);
 
   const [cities, setCities] = React.useState([]);
   const [citiesLoading, setCitiesLoading] = React.useState(true);
@@ -167,49 +174,19 @@ export default function MovieDetails() {
   const [showtimesError, setShowtimesError] = React.useState("");
 
   const retry = React.useCallback(() => {
-    setRetryToken((value) => value + 1);
-  }, []);
+    refetchMovie();
+  }, [refetchMovie]);
 
-  // Movie details.
+  const movieLoaded = movieLoading === false;
+
   React.useEffect(() => {
-    let active = true;
+    if (!movie) return;
+    setArchived(movie?.status === "ARCHIVED");
+  }, [movie]);
 
-    setMovieLoading(true);
-    setMovieError("");
-
-    getMovie(id)
-      .then((data) => {
-        if (!active) return;
-
-        setMovie(data);
-        setArchived(data?.status === "ARCHIVED");
-      })
-      .catch((error) => {
-        if (active) {
-          setMovie(null);
-          setArchived(false);
-          setMovieError(error.message || "Unable to load this movie.");
-        }
-      })
-      .finally(() => {
-        if (!active) return;
-
-        setMovieLoading(false);
-        setMovieLoaded(true);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [id, retryToken]);
-
-  // Recommendations: fetch the public catalogue and rank by genre overlap
-  // and language match. Archived movies are already excluded server-side.
-  React.useEffect(() => {
-    if (!movieLoaded || !movie) return;
-
-    let active = true;
-    setRecsLoading(true);
+    React.useEffect(() => {
+      let active = true;
+      setRecsLoading(true);
 
     getMovies()
       .then((data) => {
@@ -321,7 +298,7 @@ export default function MovieDetails() {
     return () => {
       active = false;
     };
-  }, [id, selectedLocation, retryToken, archived, movieLoaded]);
+  }, [id, selectedLocation, refetchMovie, archived, movieLoaded]);
 
   // Theatres for the selected city.
   React.useEffect(() => {
@@ -365,9 +342,7 @@ export default function MovieDetails() {
     return () => {
       active = false;
     };
-  }, [id, selectedCityId, retryToken]);
-
-  // Dates that still have bookable shows at the selected theatre.
+  }, [id, selectedCityId, refetchMovie]);
   React.useEffect(() => {
     let active = true;
 
@@ -409,7 +384,7 @@ export default function MovieDetails() {
     return () => {
       active = false;
     };
-  }, [id, selectedTheatreId, retryToken]);
+  }, [id, selectedTheatreId, refetchMovie]);
 
   // Showtimes for the selected date.
   React.useEffect(() => {
@@ -444,7 +419,7 @@ export default function MovieDetails() {
     return () => {
       active = false;
     };
-  }, [id, selectedTheatreId, selectedDate, retryToken]);
+  }, [id, selectedTheatreId, selectedDate, refetchMovie]);
 
   if (movieLoading) {
     return (
