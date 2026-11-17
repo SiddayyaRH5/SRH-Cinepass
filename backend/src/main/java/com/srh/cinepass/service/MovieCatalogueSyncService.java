@@ -1,5 +1,6 @@
 package com.srh.cinepass.service;
 
+import com.srh.cinepass.dto.TmdbCastMember;
 import com.srh.cinepass.dto.TmdbMovieCandidate;
 import com.srh.cinepass.dto.TmdbMovieDetails;
 import com.srh.cinepass.entity.Movie;
@@ -179,23 +180,48 @@ public class MovieCatalogueSyncService {
             return Outcome.SKIPPED;
         }
 
-        TmdbMovieDetails movieDetails = details.get();
+        TmdbMovieDetails baseDetails = details.get();
+
+        Optional<Movie> existing = movieRepository.findByTmdbId(candidate.tmdbId());
+
+        boolean needsCredits = existing.isEmpty()
+                || existing.get().getCastJson() == null
+                || existing.get().getCastJson().isBlank();
+
+        boolean needsTrailer = existing.isEmpty()
+                || existing.get().getTrailerKey() == null
+                || existing.get().getTrailerKey().isBlank();
+
+        List<TmdbCastMember> cast = needsCredits
+                ? tmdbService.fetchCredits(candidate.tmdbId())
+                : List.of();
+
+        String trailerKey = needsTrailer
+                ? tmdbService.fetchTrailerKey(candidate.tmdbId())
+                : existing.map(Movie::getTrailerKey).orElse(null);
+
+        TmdbMovieDetails movieDetails = new TmdbMovieDetails(
+                baseDetails.tmdbId(),
+                baseDetails.title(),
+                baseDetails.overview(),
+                baseDetails.posterUrl(),
+                baseDetails.backdropUrl(),
+                baseDetails.originalLanguage(),
+                baseDetails.genres(),
+                baseDetails.rating(),
+                baseDetails.runtime(),
+                baseDetails.indiaTheatricalReleaseDate(),
+                trailerKey,
+                cast);
 
         LocalDate indiaDate = movieDetails.indiaTheatricalReleaseDate();
 
         if (indiaDate == null) {
-            /*
-             * No confirmed Indian theatrical release date. The movie is a
-             * candidate only; it must not create a catalogue entry.
-             */
             log.info(
                     "Skipped TMDB movie {}: no Indian theatrical release date",
                     candidate.tmdbId());
             return Outcome.SKIPPED;
         }
-
-        Optional<Movie> existing =
-                movieRepository.findByTmdbId(candidate.tmdbId());
 
         if (existing.isPresent()) {
 

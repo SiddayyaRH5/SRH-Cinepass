@@ -1,5 +1,6 @@
 package com.srh.cinepass.service;
 
+import com.srh.cinepass.dto.TmdbCastMember;
 import com.srh.cinepass.dto.TmdbMovieDetails;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.repository.MovieRepository;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -65,7 +67,26 @@ public class TmdbSyncService {
                     "TMDB returned no usable movie for id: " + tmdbId);
         }
 
-        TmdbMovieDetails movieDetails = details.get();
+        TmdbMovieDetails baseDetails = details.get();
+
+        // Fetch credits and trailer independently so a failure in one does
+        // not prevent the other from being saved.
+        List<TmdbCastMember> cast = tmdbService.fetchCredits(tmdbId);
+        String trailerKey = tmdbService.fetchTrailerKey(tmdbId);
+
+        TmdbMovieDetails movieDetails = new TmdbMovieDetails(
+                baseDetails.tmdbId(),
+                baseDetails.title(),
+                baseDetails.overview(),
+                baseDetails.posterUrl(),
+                baseDetails.backdropUrl(),
+                baseDetails.originalLanguage(),
+                baseDetails.genres(),
+                baseDetails.rating(),
+                baseDetails.runtime(),
+                baseDetails.indiaTheatricalReleaseDate(),
+                trailerKey,
+                cast);
 
         LocalDateTime now = LocalDateTime.now(clock);
 

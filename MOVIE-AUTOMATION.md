@@ -18,8 +18,7 @@ executes these phases in order, under a single distributed lease:
 |---|-------|--------------|
 | 1 | Lease | Acquire the existing show-generation lease. If another instance holds it, the whole run is skipped and recorded. |
 | 2 | Catalogue sync | Read the TMDB regional lists, confirm the Indian theatrical release date of every candidate, and insert or refresh movies. |
-| 3 | Lifecycle | Retire movies that are 60 days past their Indian theatrical release date, unless something is still open. |
-| 4 | Show generation | Create the missing shows for the rolling seven date window. |
+| 3 | Lifecycle | Retire movies that are 30 days past their Indian theatrical release date, unless something is still open. || 4 | Show generation | Create the missing shows for the rolling seven date window. |
 | 5 | Statistics | Record the counters, the outcome and any error in `automation_run`. |
 | 6 | Lease | Release the lease. |
 
@@ -67,7 +66,7 @@ variable.
 | Property | Environment variable | Default | Meaning |
 |----------|----------------------|---------|---------|
 | `app.movies.lifecycle.retirement-enabled` | `MOVIE_RETIREMENT_ENABLED` | `true` | Master switch for automatic retirement. |
-| `app.movies.lifecycle.retirement-days` | `MOVIE_RETIREMENT_DAYS` | `60` | Days after the Indian theatrical date before a movie is retired. |
+| `app.movies.lifecycle.retirement-days` | `MOVIE_RETIREMENT_DAYS` | `30` | Days after the Indian theatrical date before a movie is retired. |
 
 ### Show scheduler
 
@@ -207,15 +206,15 @@ before the show starts.
 
 ---
 
-## 6. Movie retirement after 60 days
+## 6. Movie retirement after 30 days
 
 A movie becomes eligible for retirement when the number of calendar days
 between its **Indian theatrical release date** and the business date reaches
 `app.movies.lifecycle.retirement-days`.
 
 **Boundary rule:** the age must be **greater than or equal to** the
-configured number of days. A movie released 60 days ago is eligible; a movie
-released 59 days ago is not. The legacy `release_date` is only used as a
+configured number of days. A movie released 30 days ago is eligible; a movie
+released 29 days ago is not. The legacy `release_date` is only used as a
 fallback for rows created before the Indian date column existed.
 
 Retirement **never deletes anything**. The movie moves to `ARCHIVED`, which:
@@ -237,7 +236,7 @@ postponement and its reason are recorded on the movie:
 | An administrator protected it. | `protected by an administrator` |
 | An administrator extended its active period. | `active period extended until YYYY-MM-DD` |
 
-Existing shows are never cancelled merely because a movie reached 60 days.
+Existing shows are never cancelled merely because a movie reached 30 days.
 
 ---
 
@@ -341,7 +340,7 @@ them in Git.
 | `TMDB_SYNC_KEY` | For the legacy manual sync endpoint | Shared secret for `POST /api/tmdb/sync/{movieId}`. |
 | `MOVIE_SYNC_ENABLED` | No (`true`) | Master switch for the catalogue sync. |
 | `MOVIE_RETIREMENT_ENABLED` | No (`true`) | Master switch for automatic retirement. |
-| `MOVIE_RETIREMENT_DAYS` | No (`60`) | Retirement age in days. |
+| `MOVIE_RETIREMENT_DAYS` | No (`30`) | Retirement age in days. |
 | `SHOW_SCHEDULER_HORIZON_DAYS` | No (`7`) | Size of the rolling window. |
 
 The scheduler runs inside the backend process, so no separate worker or cron
@@ -371,7 +370,7 @@ Another instance held the lease. The run is retried by the next scheduled
 execution. The lease always expires, so a crashed instance cannot block the
 job permanently.
 
-**A movie is not retired although it is older than 60 days.**
+**A movie is not retired although it is older than 30 days.**
 Check `retirementHoldReason` in the admin API. It names the exact hold:
 future shows, open bookings, an unresolved payment workflow, administrator
 protection or an extended active period.

@@ -25,14 +25,14 @@ import java.util.List;
  * Automatic movie retirement.
  *
  * <p>A movie becomes eligible for retirement once it is
- * {@code app.movies.lifecycle.retirement-days} (default 60) calendar days past
+ * {@code app.movies.lifecycle.retirement-days} (default 30) calendar days past
  * its Indian theatrical release date. The reference date is the confirmed
  * Indian theatrical date; the legacy {@code releaseDate} is only used as a
  * fallback for rows that predate the India date field.</p>
  *
  * <p><strong>Boundary rule:</strong> a movie is eligible on the day the age
- * reaches exactly the configured number of days. A movie released 60 days ago
- * is eligible; a movie released 59 days ago is not.</p>
+ * reaches exactly the configured number of days. A movie released 30 days ago
+ * is eligible; a movie released 29 days ago is not.</p>
  *
  * <p>Retirement never deletes anything. It moves the movie to
  * {@code ARCHIVED}, which hides it from the customer catalogue, stops new
@@ -98,7 +98,7 @@ public class MovieLifecycleService {
             MovieLifecycleWriter writer,
             Clock clock,
             @Value("${app.movies.lifecycle.retirement-enabled:true}") boolean retirementEnabled,
-            @Value("${app.movies.lifecycle.retirement-days:60}") int retirementDays) {
+            @Value("${app.movies.lifecycle.retirement-days:30}") int retirementDays) {
 
         this.movieRepository = movieRepository;
         this.showRepository = showRepository;

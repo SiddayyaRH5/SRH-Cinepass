@@ -138,6 +138,8 @@ export default function MovieDetails() {
   const [movieError, setMovieError] = React.useState("");
   const [archived, setArchived] = React.useState(false);
   const [movieLoaded, setMovieLoaded] = React.useState(false);
+  const [showAllCast, setShowAllCast] = React.useState(false);
+  const [playingTrailer, setPlayingTrailer] = React.useState(false);
 
   const [retryToken, setRetryToken] = React.useState(0);
 
@@ -687,6 +689,143 @@ export default function MovieDetails() {
           shadow-[0_0_10px_rgba(0,207,255,.75)]
         "
       />
+
+      {/* =====================================================
+          TRAILER
+      ===================================================== */}
+
+      {movie.trailerKey && (
+        <section className="mx-auto max-w-[1200px] px-5 pt-2 pb-6 sm:px-8">
+          <div className="mb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
+              Trailer
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold">Watch trailer</h2>
+          </div>
+
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+            {playingTrailer ? (
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${movie.trailerKey}?autoplay=1&rel=0`}
+                title={`${movie.title} trailer`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPlayingTrailer(true)}
+                className="group absolute inset-0 flex items-center justify-center"
+                aria-label={`Play ${movie.title} trailer`}
+              >
+                <img
+                  src={`https://img.youtube.com/vi/${movie.trailerKey}/maxresdefault.jpg`}
+                  alt={`${movie.title} trailer thumbnail`}
+                  className="absolute inset-0 h-full w-full object-cover opacity-70 transition group-hover:opacity-90"
+                  onError={(e) => {
+                    e.currentTarget.src = `https://img.youtube.com/vi/${movie.trailerKey}/hqdefault.jpg`;
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <span className="relative grid h-16 w-16 place-items-center rounded-full bg-cyan-400/90 text-slate-950 shadow-[0_0_30px_rgba(34,211,238,.5)] transition group-hover:scale-110 sm:h-20 sm:w-20">
+                  <Play size={28} className="ml-1 fill-slate-950" />
+                </span>
+              </button>
+            )}
+          </div>
+
+          <p className="mt-3 text-xs text-white/35">
+            Trailer provided by TMDB.{" "}
+            <a
+              href={`https://www.youtube.com/watch?v=${movie.trailerKey}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan-300/70 underline hover:text-cyan-200"
+            >
+              Open on YouTube
+            </a>
+          </p>
+        </section>
+      )}
+
+      {/* =====================================================
+          CAST
+      ===================================================== */}
+
+      {(() => {
+        let cast = [];
+        try {
+          cast = movie.castJson ? JSON.parse(movie.castJson) : [];
+        } catch {
+          cast = [];
+        }
+        if (!Array.isArray(cast) || cast.length === 0) return null;
+        const visible = showAllCast ? cast : cast.slice(0, 8);
+        return (
+          <section className="mx-auto max-w-[1200px] px-5 pt-2 pb-8 sm:px-8">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
+                  Cast
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold">
+                  Top billed cast
+                </h2>
+              </div>
+              {cast.length > 8 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllCast((v) => !v)}
+                  className="text-xs text-cyan-300/70 transition hover:text-cyan-200"
+                >
+                  {showAllCast ? "Show less" : `Show all (${cast.length})`}
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+              {visible.map((member, index) => {
+                const photo = member.profilePath
+                  ? `https://image.tmdb.org/t/p/w185${member.profilePath}`
+                  : null;
+                return (
+                  <div
+                    key={`${member.name}-${index}`}
+                    className="overflow-hidden rounded-xl border border-white/10 bg-white/[.03]"
+                  >
+                    <div className="aspect-[2/3] w-full overflow-hidden bg-white/[.04]">
+                      {photo ? (
+                        <img
+                          src={photo}
+                          alt={member.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="grid h-full place-items-center text-[10px] text-white/25">
+                          No photo
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2.5">
+                      <p className="truncate text-xs font-semibold text-white/85">
+                        {member.name}
+                      </p>
+                      <p className="truncate text-[10px] text-white/40">
+                        {member.character || "—"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* =====================================================
           BOOKING FLOW: CITY -> THEATRE -> DATE -> SHOWTIME

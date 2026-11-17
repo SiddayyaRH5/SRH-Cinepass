@@ -123,6 +123,22 @@ public class Movie {
     @Column(name = "last_sync_error", length = 1000)
     private String lastSyncError;
 
+    /**
+     * YouTube video key for the movie's trailer (e.g. "SUXWAEX2jlg").
+     * The full embed URL is constructed by the frontend. Null when no
+     * trailer is available.
+     */
+    @Column(name = "trailer_key", length = 50)
+    private String trailerKey;
+
+    /**
+     * JSON array of principal cast members:
+     * [{"name":"...","character":"...","profilePath":"/..."}].
+     * Null or empty when no cast information is available.
+     */
+    @Column(name = "cast_json", columnDefinition = "TEXT")
+    private String castJson;
+
     public Movie() {}
 
     public Long getId() { return id; }
@@ -204,6 +220,12 @@ public class Movie {
     @JsonIgnore
     public String getLastSyncError() { return lastSyncError; }
     public void setLastSyncError(String lastSyncError) { this.lastSyncError = lastSyncError; }
+
+    public String getTrailerKey() { return trailerKey; }
+    public void setTrailerKey(String trailerKey) { this.trailerKey = trailerKey; }
+
+    public String getCastJson() { return castJson; }
+    public void setCastJson(String castJson) { this.castJson = castJson; }
 
     // -------------------------------------------------------------------
     // Null-safe helpers used by the services and the admin API.

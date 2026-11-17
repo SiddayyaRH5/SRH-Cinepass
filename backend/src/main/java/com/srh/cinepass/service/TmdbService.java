@@ -2,6 +2,7 @@ package com.srh.cinepass.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.srh.cinepass.dto.TmdbCastMember;
 import com.srh.cinepass.dto.TmdbMovieCandidate;
 import com.srh.cinepass.dto.TmdbMovieDetails;
 import com.srh.cinepass.entity.Movie;
@@ -90,6 +91,8 @@ public class TmdbService {
 
     private final Cache<String, DiscoveryResult> discoveryCache;
     private final Cache<Long, TmdbMovieDetails> detailsCache;
+    private final Cache<Long, List<TmdbCastMember>> creditsCache;
+    private final Cache<Long, String> videosCache;
 
     public TmdbService(
             MovieRepository movieRepository,
@@ -123,6 +126,16 @@ public class TmdbService {
                 .build();
 
         this.detailsCache = Caffeine.newBuilder()
+                .maximumSize(2000)
+                .expireAfterWrite(Duration.ofMinutes(Math.max(1, detailsTtlMinutes)))
+                .build();
+
+        this.creditsCache = Caffeine.newBuilder()
+                .maximumSize(2000)
+                .expireAfterWrite(Duration.ofMinutes(Math.max(1, detailsTtlMinutes)))
+                .build();
+
+        this.videosCache = Caffeine.newBuilder()
                 .maximumSize(2000)
                 .expireAfterWrite(Duration.ofMinutes(Math.max(1, detailsTtlMinutes)))
                 .build();
@@ -392,7 +405,9 @@ public class TmdbService {
                 rating,
                 runtime,
                 extractIndiaTheatricalReleaseDate(node.path("release_dates"))
-                        .orElse(null));
+                        .orElse(null),
+                null,
+                List.of());
 
         detailsCache.put(tmdbId, details);
 
@@ -470,6 +485,116 @@ public class TmdbService {
         return Optional.ofNullable(theatrical != null ? theatrical : limited);
     }
 
+    // ============================================================
+    // Credits and videos (cast and trailer)
+    // ============================================================
+
+    /**
+     * Reads the principal cast of a movie. Returns an empty list when TMDB
+     * has no cast data or the request fails.
+     */
+    public List<TmdbCastMember> fetchCredits(Long tmdbId) {
+
+        if (tmdbId == null || tmdbId <= 0 || !hasCredentials()) {
+            return List.of();
+        }
+
+        List<TmdbCastMember> cached = creditsCache.getIfPresent(tmdbId);
+
+        if (cached != null) {
+            return cached;
+        }
+
+        JsonNode node = getJson(baseUrl + "/movie/" + tmdbId + "/credits");
+
+        if (node == null || node.isNull()) {
+            log.warn("TMDB credits unavailable for movie {}", tmdbId);
+            return List.of();
+        }
+
+        List<TmdbCastMember> cast = parseCast(node.path("cast"));
+
+        creditsCache.put(tmdbId, cast);
+
+        return cast;
+    }
+
+    /**
+     * Reads the YouTube trailer key for a movie. Returns {@code null} when
+     * no suitable trailer is available or the request fails.
+     */
+    public String fetchTrailerKey(Long tmdbId) {
+
+        if (tmdbId == null || tmdbId <= 0 || !hasCredentials()) {
+            return null;
+        }
+
+        String cached = videosCache.getIfPresent(tmdbId);
+
+        if (cached != null) {
+            return cached.isEmpty() ? null : cached;
+        }
+
+        JsonNode node = getJson(baseUrl + "/movie/" + tmdbId + "/videos");
+
+        if (node == null || node.isNull()) {
+            log.warn("TMDB videos unavailable for movie {}", tmdbId);
+            return null;
+        }
+
+        String key = extractTrailerKey(node.path("results"));
+
+        videosCache.put(tmdbId, key == null ? "" : key);
+
+        return key;
+    }
+
+    /**
+     * Extracts the best YouTube trailer key from a TMDB videos result array.
+     *
+     * <p>Preference order:</p>
+     * <ol>
+     *   <li>Official YouTube trailer.</li>
+     *   <li>Any YouTube trailer.</li>
+     * </ol>
+     *
+     * @return the video key, or {@code null} when none is available
+     */
+    public static String extractTrailerKey(JsonNode results) {
+
+        if (results == null || !results.isArray()) {
+            return null;
+        }
+
+        String officialTrailer = null;
+        String anyTrailer = null;
+
+        for (JsonNode video : results) {
+
+            String site = text(video, "site");
+            String type = text(video, "type");
+            String key = text(video, "key");
+
+            if (!"YouTube".equalsIgnoreCase(site) || key.isEmpty()) {
+                continue;
+            }
+
+            if (!"Trailer".equalsIgnoreCase(type)) {
+                continue;
+            }
+
+            if (anyTrailer == null) {
+                anyTrailer = key;
+            }
+
+            if (video.path("official").asBoolean(false) && officialTrailer == null) {
+                officialTrailer = key;
+            }
+        }
+
+        return officialTrailer != null ? officialTrailer : anyTrailer;
+    }
+
     /**
      * @return {@code true} when a TMDB access token is configured
      */
@@ -542,6 +667,42 @@ public class TmdbService {
                 .filter(name -> !name.isBlank())
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
+    }
+
+    /**
+     * Parses up to 15 principal cast members from a TMDB credits cast array.
+     */
+    private List<TmdbCastMember> parseCast(JsonNode castArray) {
+
+        List<TmdbCastMember> result = new ArrayList<>();
+
+        if (castArray == null || !castArray.isArray()) {
+            return result;
+        }
+
+        int count = 0;
+
+        for (JsonNode member : castArray) {
+
+            if (count >= 15) {
+                break;
+            }
+
+            String name = text(member, "name");
+
+            if (name.isEmpty()) {
+                continue;
+            }
+
+            String character = text(member, "character");
+            String profilePath = text(member, "profile_path");
+
+            result.add(new TmdbCastMember(name, character, profilePath));
+
+            count++;
+        }
+
+        return result;
     }
 
     private static LocalDate parseReleaseDate(String raw) {

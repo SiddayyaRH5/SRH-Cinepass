@@ -64,9 +64,9 @@ essentials are:
   but only when no duplicate non-null `tmdb_id` groups exist. Duplicates and
   rows without a TMDB id are *reported* through the admin API and are never
   merged or deleted automatically.
-- **60-day retirement.** A movie is retired once it is 60 calendar days past
+- **30-day retirement.** A movie is retired once it is 30 calendar days past
   its Indian theatrical release date (the age must reach the configured
-  number of days; 60 days exactly is eligible). Retirement never deletes
+  number of days; 30 days exactly is eligible). Retirement never deletes
   anything: the movie row, its shows, bookings, tickets, seats and payment
   records are all preserved. A movie with future shows, open bookings, an
   unresolved payment workflow, administrator protection or an extended
@@ -162,7 +162,7 @@ The seat reservation lasts 10 minutes. If a genuine captured payment arrives aft
    - `TMDB_SYNC_KEY` — optional but required for the protected sync endpoint
    - `MOVIE_SYNC_ENABLED` — optional; default `true`, master switch for the TMDB catalogue sync
    - `MOVIE_RETIREMENT_ENABLED` — optional; default `true`, master switch for automatic movie retirement
-   - `MOVIE_RETIREMENT_DAYS` — optional; default `60`, days after the Indian theatrical date
+   - `MOVIE_RETIREMENT_DAYS` - optional; default `30`, days after the Indian theatrical date
    - `SHOW_SCHEDULER_HORIZON_DAYS` — optional; default `7`, calendar dates in the rolling window
    - `DB_POOL_MAX_SIZE` — optional; default `4`
    - `DB_POOL_MIN_IDLE` — optional; default `1` (one warm connection; lightweight Hikari validation every four minutes)

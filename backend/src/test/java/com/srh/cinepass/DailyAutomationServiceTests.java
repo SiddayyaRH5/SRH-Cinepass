@@ -54,7 +54,7 @@ class DailyAutomationServiceTests extends TicketTestSupport {
     void runsTheLifecycleBeforeTheShowGeneration() {
 
         Movie current = createTmdbMovie("Current Movie", 9001L, TODAY.minusDays(10));
-        Movie old = createTmdbMovie("Old Movie", 9002L, TODAY.minusDays(90));
+        Movie old = createTmdbMovie("Old Movie", 9002L, TODAY.minusDays(45));
 
         Theatre theatre = createAdminTheatre("Automation Theatre", 30);
 

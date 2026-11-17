@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>The retirement age is measured from the confirmed Indian theatrical
  * release date. A movie is retired once the age reaches the configured number
- * of days (60 by default), and it is never retired while anything about it is
+ * of days (30 by default), and it is never retired while anything about it is
  * still open. Nothing is ever deleted.</p>
  */
 class MovieLifecycleServiceTests extends TicketTestSupport {
@@ -41,7 +41,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void keepsAMovieThatIsYoungerThanTheRetirementAge() {
 
-        Movie movie = createTmdbMovie("Young Movie", 5001L, TODAY.minusDays(59));
+        Movie movie = createTmdbMovie("Young Movie", 5001L, TODAY.minusDays(29));
 
         MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
 
@@ -52,7 +52,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void retiresAMovieExactlyAtTheRetirementBoundary() {
 
-        Movie movie = createTmdbMovie("Boundary Movie", 5002L, TODAY.minusDays(60));
+        Movie movie = createTmdbMovie("Boundary Movie", 5002L, TODAY.minusDays(30));
 
         MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
 
@@ -65,9 +65,42 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     }
 
     @Test
+    void doesNotRetireAMovieAt29Days() {
+
+        Movie movie = createTmdbMovie("TwentyNineDays", 5090L, TODAY.minusDays(29));
+
+        MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
+
+        assertThat(report.archived()).isZero();
+        assertThat(stored(movie).getStatus()).isEqualTo(MovieStatus.ACTIVE);
+    }
+
+    @Test
+    void retiresAMovieAt30Days() {
+
+        Movie movie = createTmdbMovie("ThirtyDays", 5091L, TODAY.minusDays(30));
+
+        MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
+
+        assertThat(report.archived()).isEqualTo(1);
+        assertThat(stored(movie).getStatus()).isEqualTo(MovieStatus.ARCHIVED);
+    }
+
+    @Test
+    void retiresAMovieAt31Days() {
+
+        Movie movie = createTmdbMovie("ThirtyOneDays", 5092L, TODAY.minusDays(31));
+
+        MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
+
+        assertThat(report.archived()).isEqualTo(1);
+        assertThat(stored(movie).getStatus()).isEqualTo(MovieStatus.ARCHIVED);
+    }
+
+    @Test
     void retiresAMovieThatIsOlderThanTheRetirementAge() {
 
-        Movie movie = createTmdbMovie("Old Movie", 5003L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Old Movie", 5003L, TODAY.minusDays(45));
 
         lifecycleService.evaluate();
 
@@ -77,7 +110,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void neverDeletesTheRetiredMovieOrItsShows() {
 
-        Movie movie = createTmdbMovie("Historic Movie", 5004L, TODAY.minusDays(120));
+        Movie movie = createTmdbMovie("Historic Movie", 5004L, TODAY.minusDays(60));
 
         Show pastShow = createShow(movie, LocalDateTime.of(2026, 11, 10, 10, 0));
 
@@ -91,7 +124,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void doesNotRetireAMovieThatStillHasFutureShows() {
 
-        Movie movie = createTmdbMovie("Future Show Movie", 5005L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Future Show Movie", 5005L, TODAY.minusDays(45));
 
         createShow(movie, LocalDateTime.of(2026, 11, 16, 10, 0));
 
@@ -110,7 +143,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void doesNotRetireAMovieWithAnOpenBooking() {
 
-        Movie movie = createTmdbMovie("Booked Movie", 5006L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Booked Movie", 5006L, TODAY.minusDays(45));
 
         User customer = createUser("Customer", "USER");
 
@@ -132,7 +165,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void doesNotRetireAMovieWithAnUnresolvedPaymentWorkflow() {
 
-        Movie movie = createTmdbMovie("Unresolved Movie", 5007L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Unresolved Movie", 5007L, TODAY.minusDays(45));
 
         User customer = createUser("Customer", "USER");
 
@@ -158,7 +191,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void doesNotRetireAnAdministratorProtectedMovie() {
 
-        Movie movie = createTmdbMovie("Protected Movie", 5008L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Protected Movie", 5008L, TODAY.minusDays(45));
 
         movie.setAdminProtected(true);
         movieRepository.saveAndFlush(movie);
@@ -173,7 +206,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void doesNotRetireAMovieWhoseActivePeriodWasExtended() {
 
-        Movie movie = createTmdbMovie("Extended Movie", 5009L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Extended Movie", 5009L, TODAY.minusDays(45));
 
         movie.setActiveUntil(TODAY.plusDays(30));
         movieRepository.saveAndFlush(movie);
@@ -188,7 +221,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void retiresAMovieOnceItsExtendedActivePeriodHasPassed() {
 
-        Movie movie = createTmdbMovie("Expired Extension", 5010L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Expired Extension", 5010L, TODAY.minusDays(45));
 
         movie.setActiveUntil(TODAY.minusDays(1));
         movieRepository.saveAndFlush(movie);
@@ -203,7 +236,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
 
         Movie movie = createMovie("Legacy Movie");
 
-        movie.setReleaseDate(TODAY.minusDays(90));
+        movie.setReleaseDate(TODAY.minusDays(45));
         movieRepository.saveAndFlush(movie);
 
         lifecycleService.evaluate();
@@ -226,7 +259,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void doesNotRetireAMovieThatIsAlreadyArchived() {
 
-        Movie movie = createTmdbMovie("Archived Movie", 5011L, TODAY.minusDays(200));
+        Movie movie = createTmdbMovie("Archived Movie", 5011L, TODAY.minusDays(60));
 
         movie.setStatus(MovieStatus.ARCHIVED);
         movieRepository.saveAndFlush(movie);
@@ -240,7 +273,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void isSafeToRunTwice() {
 
-        Movie movie = createTmdbMovie("Repeated Movie", 5012L, TODAY.minusDays(90));
+        Movie movie = createTmdbMovie("Repeated Movie", 5012L, TODAY.minusDays(45));
 
         lifecycleService.evaluate();
         lifecycleService.evaluate();

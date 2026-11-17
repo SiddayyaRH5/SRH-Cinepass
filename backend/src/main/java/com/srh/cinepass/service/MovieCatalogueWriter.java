@@ -1,5 +1,6 @@
 package com.srh.cinepass.service;
 
+import com.srh.cinepass.dto.TmdbCastMember;
 import com.srh.cinepass.dto.TmdbMovieDetails;
 import com.srh.cinepass.entity.Movie;
 import com.srh.cinepass.entity.MovieSource;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Transactional persistence for the automatic catalogue sync.
@@ -175,6 +177,23 @@ public class MovieCatalogueWriter {
             movie.setDuration(details.runtime());
         }
 
+        // Trailer key: only overwrite when TMDB provides one, or when the
+        // movie has none yet. This avoids clearing an existing trailer on a
+        // failed fetch.
+        if (details.trailerKey() != null && !details.trailerKey().isBlank()) {
+            movie.setTrailerKey(details.trailerKey());
+        } else if (movie.getTrailerKey() == null) {
+            movie.setTrailerKey(null);
+        }
+
+        // Cast: only overwrite when TMDB provides a non-empty list, or when
+        // the movie has none yet.
+        if (details.cast() != null && !details.cast().isEmpty()) {
+            movie.setCastJson(toCastJson(details.cast()));
+        } else if (movie.getCastJson() == null) {
+            movie.setCastJson(null);
+        }
+
         LocalDate indiaDate = details.indiaTheatricalReleaseDate();
 
         if (indiaDate != null) {
@@ -199,6 +218,51 @@ public class MovieCatalogueWriter {
 
         movie.setTmdbSyncedAt(now);
         movie.setLastSyncError(null);
+    }
+
+    /**
+     * Serialises the cast list to a compact JSON array. Only the fields the
+     * frontend needs are included; profile paths are stored as TMDB relative
+     * paths so the frontend can build the image URL.
+     */
+    private static String toCastJson(List<TmdbCastMember> cast) {
+
+        if (cast == null || cast.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder("[");
+
+        for (int i = 0; i < cast.size(); i++) {
+
+            if (i > 0) {
+                sb.append(",");
+            }
+
+            TmdbCastMember member = cast.get(i);
+
+            sb.append("{\"name\":\"").append(escapeJson(member.name())).append("\",")
+                    .append("\"character\":\"").append(escapeJson(member.character())).append("\",")
+                    .append("\"profilePath\":\"").append(escapeJson(member.profilePath())).append("\"}");
+        }
+
+        sb.append("]");
+
+        return sb.toString();
+    }
+
+    private static String escapeJson(String value) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     private static String truncate(String value) {

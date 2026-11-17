@@ -1,5 +1,6 @@
 package com.srh.cinepass;
 
+import com.srh.cinepass.dto.TmdbCastMember;
 import com.srh.cinepass.dto.TmdbMovieCandidate;
 import com.srh.cinepass.dto.TmdbMovieDetails;
 import com.srh.cinepass.service.TmdbService;
@@ -8,6 +9,8 @@ import com.srh.cinepass.support.TmdbStubServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -376,6 +379,135 @@ class TmdbServiceTests {
 
         long calls = server.requests().stream()
                 .filter(request -> request.startsWith(NOW_PLAYING))
+                .count();
+
+        assertThat(calls).isEqualTo(1);
+    }
+
+    // ============================================================
+    // Trailer extraction
+    // ============================================================
+
+    @Test
+    void extractTrailerKeyPrefersTheOfficialTrailer() {
+
+        String json = """
+                [
+                  {"key":"aaa","site":"YouTube","type":"Trailer","official":false},
+                  {"key":"bbb","site":"YouTube","type":"Trailer","official":true},
+                  {"key":"ccc","site":"YouTube","type":"Teaser","official":true}
+                ]""";
+
+        JsonNode node = new tools.jackson.databind.ObjectMapper().readTree(json);
+
+        assertThat(TmdbService.extractTrailerKey(node)).isEqualTo("bbb");
+    }
+
+    @Test
+    void extractTrailerKeyFallsBackToAnyTrailerWhenNoOfficialExists() {
+
+        String json = """
+                [
+                  {"key":"aaa","site":"YouTube","type":"Trailer","official":false},
+                  {"key":"bbb","site":"Vimeo","type":"Trailer","official":true}
+                ]""";
+
+        JsonNode node = new tools.jackson.databind.ObjectMapper().readTree(json);
+
+        assertThat(TmdbService.extractTrailerKey(node)).isEqualTo("aaa");
+    }
+
+    @Test
+    void extractTrailerKeyReturnsNullWhenNoTrailerExists() {
+
+        String json = """
+                [
+                  {"key":"aaa","site":"YouTube","type":"Teaser","official":true},
+                  {"key":"bbb","site":"Vimeo","type":"Trailer","official":true}
+                ]""";
+
+        JsonNode node = new tools.jackson.databind.ObjectMapper().readTree(json);
+
+        assertThat(TmdbService.extractTrailerKey(node)).isNull();
+    }
+
+    @Test
+    void extractTrailerKeyReturnsNullForNullInput() {
+        assertThat(TmdbService.extractTrailerKey(null)).isNull();
+    }
+
+    // ============================================================
+    // Cast parsing
+    // ============================================================
+
+    @Test
+    void fetchCreditsParsesCastMembers() {
+
+        server.respond("/3/movie/200/credits", """
+                {"id":200,"cast":[
+                  {"id":1,"name":"Actor One","character":"Hero","profile_path":"/p1.jpg"},
+                  {"id":2,"name":"Actor Two","character":"Villain","profile_path":null}
+                ],"crew":[]}""");
+
+        List<TmdbCastMember> cast = tmdbService.fetchCredits(200L);
+
+        assertThat(cast).hasSize(2);
+        assertThat(cast.get(0).name()).isEqualTo("Actor One");
+        assertThat(cast.get(0).character()).isEqualTo("Hero");
+        assertThat(cast.get(0).profilePath()).isEqualTo("/p1.jpg");
+        assertThat(cast.get(1).name()).isEqualTo("Actor Two");
+        assertThat(cast.get(1).profilePath()).isEmpty();
+    }
+
+    @Test
+    void fetchCreditsReturnsEmptyWhenApiFails() {
+
+        server.respondWithStatus("/3/movie/201/credits", 500, "{\"error\":\"boom\"}");
+
+        assertThat(tmdbService.fetchCredits(201L)).isEmpty();
+    }
+
+    @Test
+    void fetchCreditsReturnsEmptyWhenNoCastExists() {
+
+        server.respond("/3/movie/202/credits", """
+                {"id":202,"cast":[],"crew":[]}""");
+
+        assertThat(tmdbService.fetchCredits(202L)).isEmpty();
+    }
+
+    @Test
+    void fetchTrailerKeyReturnsNullWhenNoTrailerExists() {
+
+        server.respond("/3/movie/203/videos", """
+                {"id":203,"results":[
+                  {"key":"aaa","site":"YouTube","type":"Teaser","official":true}
+                ]}""");
+
+        assertThat(tmdbService.fetchTrailerKey(203L)).isNull();
+    }
+
+    @Test
+    void fetchTrailerKeyReturnsNullWhenApiFails() {
+
+        server.respondWithStatus("/3/movie/204/videos", 500, "{\"error\":\"boom\"}");
+
+        assertThat(tmdbService.fetchTrailerKey(204L)).isNull();
+    }
+
+    @Test
+    void fetchTrailerKeyCachesResult() {
+
+        server.respond("/3/movie/205/videos", """
+                {"id":205,"results":[
+                  {"key":"trailer-key","site":"YouTube","type":"Trailer","official":true}
+                ]}""");
+
+        tmdbService.fetchTrailerKey(205L);
+        tmdbService.fetchTrailerKey(205L);
+
+        long calls = server.requests().stream()
+                .filter(request -> request.startsWith("/3/movie/205/videos"))
                 .count();
 
         assertThat(calls).isEqualTo(1);

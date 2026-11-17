@@ -1,9 +1,11 @@
 package com.srh.cinepass.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
- * Full metadata for one movie, including the Indian theatrical release date.
+ * Full metadata for one movie, including the Indian theatrical release date,
+ * the trailer key and the principal cast.
  *
  * @param tmdbId                     stable TMDB movie identifier
  * @param title                      display title
@@ -16,6 +18,8 @@ import java.time.LocalDate;
  * @param runtime                    runtime in minutes, {@code null} when unknown
  * @param indiaTheatricalReleaseDate the confirmed Indian theatrical release date,
  *                                   {@code null} when TMDB has no Indian theatrical date
+ * @param trailerKey                 YouTube video key for the trailer, {@code null} when unavailable
+ * @param cast                       principal cast members, possibly empty
  */
 public record TmdbMovieDetails(
         long tmdbId,
@@ -27,5 +31,7 @@ public record TmdbMovieDetails(
         String genres,
         Double rating,
         Integer runtime,
-        LocalDate indiaTheatricalReleaseDate) {
+        LocalDate indiaTheatricalReleaseDate,
+        String trailerKey,
+        List<TmdbCastMember> cast) {
 }
