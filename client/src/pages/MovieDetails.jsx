@@ -765,15 +765,15 @@ export default function MovieDetails() {
       ===================================================== */}
 
       {movie.trailerKey && (
-        <section className="mx-auto max-w-[1200px] px-5 pt-2 pb-6 sm:px-8">
-          <div className="mb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
+        <section className="mx-auto px-2 pt-2 pb-2 sm:px-4">
+          <div className="mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
               Trailer
             </p>
-            <h2 className="mt-1 text-2xl font-semibold">Watch trailer</h2>
+            <h2 className="mt-0.5 text-xl font-semibold">Watch trailer</h2>
           </div>
 
-          <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+          <div className="relative w-full rounded-xl border border-white/10 bg-black shadow-lg">
             {playingTrailer ? (
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${movie.trailerKey}?autoplay=1&rel=0`}
@@ -798,20 +798,20 @@ export default function MovieDetails() {
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <span className="relative grid h-16 w-16 place-items-center rounded-full bg-cyan-400/90 text-slate-950 shadow-[0_0_30px_rgba(34,211,238,.5)] transition group-hover:scale-110 sm:h-20 sm:w-20">
-                  <Play size={28} className="ml-1 fill-slate-950" />
+                <span className="relative grid h-12 w-12 place-items-center rounded-full bg-cyan-400/90 text-slate-950 shadow-[0_0_20px_rgba(34,211,238,.3)] transition group-hover:scale-110">
+                  <Play size={20} className="ml-1 fill-slate-950" />
                 </span>
               </button>
             )}
           </div>
 
-          <p className="mt-3 text-xs text-white/35">
+          <p className="mt-1 text-xs text-white/35">
             Trailer provided by TMDB.{" "}
             <a
               href={`https://www.youtube.com/watch?v=${movie.trailerKey}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-cyan-300/70 underline hover:text-cyan-200"
+              className="text-cyan-300/70 underline hover:text-cyan-200 text-xs"
             >
               Open on YouTube
             </a>
@@ -833,8 +833,8 @@ export default function MovieDetails() {
         if (!Array.isArray(cast) || cast.length === 0) return null;
         const visible = showAllCast ? cast : cast.slice(0, 8);
         return (
-          <section className="mx-auto max-w-[1200px] px-5 pt-2 pb-8 sm:px-8">
-            <div className="mb-4 flex items-end justify-between gap-3">
+          <section className="mx-auto px-2 pt-2 pb-2 sm:px-4">
+            <div className="mb-2 flex items-end justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
                   Cast
@@ -854,7 +854,7 @@ export default function MovieDetails() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {visible.map((member, index) => {
                 const photo = member.profilePath
                   ? `https://image.tmdb.org/t/p/w185${member.profilePath}`
@@ -862,30 +862,30 @@ export default function MovieDetails() {
                 return (
                   <div
                     key={`${member.name}-${index}`}
-                    className="overflow-hidden rounded-xl border border-white/10 bg-white/[.03]"
+                    className="rounded-xl border border-white/10 bg-white/[.03] overflow-hidden transition-transform duration-200 hover:scale-[101%]"
                   >
-                    <div className="aspect-[2/3] w-full overflow-hidden bg-white/[.04]">
+                    <div className="h-24 w-full overflow-hidden bg-white/[.04]">
                       {photo ? (
                         <img
                           src={photo}
                           alt={member.name}
                           loading="lazy"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover transition-transform duration-200 hover:scale-[101%]"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";
                           }}
                         />
                       ) : (
-                        <div className="grid h-full place-items-center text-[10px] text-white/25">
+                        <div className="h-full w-full place-items-center text-[10px] text-white/25">
                           No photo
                         </div>
                       )}
                     </div>
-                    <div className="p-2.5">
+                    <div className="p-1.5 text-center">
                       <p className="truncate text-xs font-semibold text-white/85">
                         {member.name}
                       </p>
-                      <p className="truncate text-[10px] text-white/40">
+                      <p className="mt-0.5 text-[9px] text-white/40">
                         {member.character || "—"}
                       </p>
                     </div>
