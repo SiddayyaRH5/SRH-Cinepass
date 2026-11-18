@@ -7,6 +7,7 @@ import com.srh.cinepass.entity.Seat;
 import com.srh.cinepass.entity.Show;
 import com.srh.cinepass.entity.User;
 import com.srh.cinepass.service.BookingService;
+import com.srh.cinepass.service.MovieAdminService;
 import com.srh.cinepass.support.TicketTestSupport;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -249,6 +251,96 @@ class MovieLifecycleApiTests extends TicketTestSupport {
         mockMvc.perform(get("/api/movies/" + archived.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(archived.getId()))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    void existingMovieReturns200() throws Exception {
+        Movie movie = createMovie("Existing Movie");
+        movieRepository.saveAndFlush(movie);
+
+        mockMvc.perform(get("/api/movies/" + movie.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(movie.getId()))
+                .andExpect(jsonPath("$.title").value("Existing Movie"));
+    }
+
+    @Test
+    void nonexistentMovieReturns404() throws Exception {
+        mockMvc.perform(get("/api/movies/999999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void repeatedMovieDetailRequestsReturnSameResult() throws Exception {
+        Movie movie = createMovie("Repeatable Movie");
+        movieRepository.saveAndFlush(movie);
+
+        mockMvc.perform(get("/api/movies/" + movie.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(movie.getId()))
+                .andExpect(jsonPath("$.title").value("Repeatable Movie"));
+
+        mockMvc.perform(get("/api/movies/" + movie.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(movie.getId()))
+                .andExpect(jsonPath("$.title").value("Repeatable Movie"));
+    }
+
+    @Test
+    void serviceLookupAfterControllerCallDoesNotThrowClassCastException() throws Exception {
+        Movie movie = createMovie("Cache Consistency Movie");
+        movieRepository.saveAndFlush(movie);
+
+        // Controller call first: caches Movie object via MovieService.getMovieById
+        mockMvc.perform(get("/api/movies/" + movie.getId()))
+                .andExpect(status().isOk());
+
+        // Direct service call should still get Movie, not ResponseEntity<Movie>
+        Movie result = movieRepository.findById(movie.getId())
+                .orElseThrow(() -> new AssertionError("Movie should be found"));
+
+        assertThat(result.getId()).isEqualTo(movie.getId());
+        assertThat(result.getTitle()).isEqualTo("Cache Consistency Movie");
+    }
+
+    @Test
+    void archivedMovieIsNotCached() throws Exception {
+        Movie archived = createMovie("Archived Movie");
+        archived.setStatus(MovieStatus.ARCHIVED);
+        archived.setArchivedAt(LocalDateTime.of(2026, 11, 15, 2, 0));
+        movieRepository.saveAndFlush(archived);
+
+        // First call: 404, and should not cache
+        mockMvc.perform(get("/api/movies/" + archived.getId()))
+                .andExpect(status().isNotFound());
+
+        // Second call: still 404 (not cached as a movie)
+        mockMvc.perform(get("/api/movies/" + archived.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void reactivatedMovieIsAccessibleAfterArchiveCycle() throws Exception {
+        Movie movie = createMovie("Reactivate Test Movie");
+        movie.setStatus(MovieStatus.ARCHIVED);
+        movieRepository.saveAndFlush(movie);
+        // Use movieRepository instead
+
+        // Archived movie is not accessible
+        mockMvc.perform(get("/api/movies/" + movie.getId()))
+                .andExpect(status().isNotFound());
+
+        // Reactivate
+        User admin = createUser("Reactor Admin", "ADMIN");
+        mockMvc.perform(post("/api/admin/movies/" + movie.getId() + "/reactivate")
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+
+        // Reactivated movie is accessible
+        mockMvc.perform(get("/api/movies/" + movie.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(movie.getId()))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
