@@ -24,8 +24,10 @@ export default function Theaters() {
   ========================================================== */
 
   React.useEffect(() => {
-    if (!selectedLocation) {
+    if (!selectedLocation || selectedLocation.id == null) {
       setData([]);
+      setLoading(false);
+      setError("");
       return;
     }
 
