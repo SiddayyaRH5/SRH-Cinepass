@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>The retirement age is measured from the confirmed Indian theatrical
  * release date. A movie is retired once the age reaches the configured number
- * of days (30 by default), and it is never retired while anything about it is
+ * of days (14 by default), and it is never retired while anything about it is
  * still open. Nothing is ever deleted.</p>
  */
 class MovieLifecycleServiceTests extends TicketTestSupport {
@@ -41,7 +41,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void keepsAMovieThatIsYoungerThanTheRetirementAge() {
 
-        Movie movie = createTmdbMovie("Young Movie", 5001L, TODAY.minusDays(29));
+        Movie movie = createTmdbMovie("Young Movie", 5001L, TODAY.minusDays(13));
 
         MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
 
@@ -52,7 +52,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void retiresAMovieExactlyAtTheRetirementBoundary() {
 
-        Movie movie = createTmdbMovie("Boundary Movie", 5002L, TODAY.minusDays(30));
+        Movie movie = createTmdbMovie("Boundary Movie", 5002L, TODAY.minusDays(14));
 
         MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
 
@@ -67,7 +67,7 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     @Test
     void doesNotRetireAMovieAt29Days() {
 
-        Movie movie = createTmdbMovie("TwentyNineDays", 5090L, TODAY.minusDays(29));
+        Movie movie = createTmdbMovie("ThirteenDays", 5090L, TODAY.minusDays(13));
 
         MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
 
@@ -76,9 +76,9 @@ class MovieLifecycleServiceTests extends TicketTestSupport {
     }
 
     @Test
-    void retiresAMovieAt30Days() {
+    void retiresAMovieAt14Days() {
 
-        Movie movie = createTmdbMovie("ThirtyDays", 5091L, TODAY.minusDays(30));
+        Movie movie = createTmdbMovie("FourteenDays", 5091L, TODAY.minusDays(14));
 
         MovieLifecycleService.LifecycleReport report = lifecycleService.evaluate();
 
