@@ -70,6 +70,9 @@ export default function MovieCard({ movie, index = 0 }) {
               src={poster}
               alt={title}
               loading="lazy"
+              decoding="async"
+              width="300"
+              height="450"
               className="
                 h-full
                 w-full

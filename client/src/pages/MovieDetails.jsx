@@ -464,12 +464,10 @@ export default function MovieDetails() {
         className="
           relative
           overflow-hidden
-          min-h-0
-          pt-24
-          pb-8
-          sm:min-h-[620px]
-          sm:pb-10
-          lg:min-h-[700px]
+          pt-20
+          pb-6
+          sm:pt-24
+          sm:pb-8
         "
       >
 
@@ -525,7 +523,7 @@ export default function MovieDetails() {
           <button
             onClick={() => navigate(-1)}
             className="
-              mb-7
+              mb-4
               flex
               items-center
               gap-2
@@ -533,8 +531,8 @@ export default function MovieDetails() {
               text-white/55
               transition
               hover:text-white
-              sm:mb-10
-              lg:mb-12
+              sm:mb-6
+              lg:mb-8
             "
           >
             <ArrowLeft size={18} />
@@ -543,7 +541,7 @@ export default function MovieDetails() {
 
           <div
             className="
-              mb-7
+              mb-4
               flex
               justify-center
               md:hidden
@@ -582,7 +580,7 @@ export default function MovieDetails() {
             className="
               grid
               w-full
-              gap-8
+              gap-6
               md:grid-cols-[210px_1fr]
               md:items-end
             "
@@ -655,7 +653,7 @@ export default function MovieDetails() {
 
               <h1
                 className="
-                  mt-4
+                  mt-3
                   text-3xl
                   font-bold
                   leading-[1.05]
@@ -667,18 +665,18 @@ export default function MovieDetails() {
                 {movie.title}
               </h1>
 
-              <p className="mt-3 text-sm italic text-cyan-200/70 sm:text-base">
+              <p className="mt-2 text-sm italic text-cyan-200/70 sm:text-base">
                 {movie.tagline || "Experience it on the big screen."}
               </p>
 
               <p
                 className="
-                  mt-4
+                  mt-3
                   max-w-3xl
                   text-sm
                   leading-6
                   text-white/55
-                  sm:mt-5
+                  sm:mt-4
                   sm:leading-7
                 "
               >
@@ -687,12 +685,12 @@ export default function MovieDetails() {
 
               <div
                 className="
-                  mt-5
+                  mt-3
                   flex
                   flex-wrap
                   items-center
                   gap-x-4
-                  gap-y-3
+                  gap-y-2
                   text-sm
                   text-white/55
                 "
@@ -864,13 +862,13 @@ export default function MovieDetails() {
                     key={`${member.name}-${index}`}
                     className="overflow-hidden rounded-xl border border-white/10 bg-white/[.03]"
                   >
-                    <div className="h-[180px] w-full overflow-hidden bg-white/[.04] sm:h-[200px]">
+                    <div className="flex h-[180px] w-full items-center justify-center overflow-hidden bg-black/20 sm:h-[200px]">
                       {photo ? (
                         <img
                           src={photo}
                           alt={member.name}
                           loading="lazy"
-                          className="h-full w-full object-cover object-top"
+                          className="h-full w-full object-contain"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";
                           }}
