@@ -35,8 +35,8 @@ const MOVIE_DETAILS_QUERY_KEY = ["movies", "detail"];
 
 function StepHeader({ number, title, hint }) {
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-cyan-300/10 text-[11px] font-semibold text-cyan-300">
+    <div className="mb-2 flex items-center gap-2.5">
+      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-cyan-300/10 text-[10px] font-semibold text-cyan-300">
         {number}
       </span>
 
@@ -44,7 +44,7 @@ function StepHeader({ number, title, hint }) {
         <h3 className="text-sm font-semibold text-white/85">{title}</h3>
 
         {hint && (
-          <p className="mt-0.5 text-[11px] text-white/35">{hint}</p>
+          <p className="mt-0 text-[11px] text-white/35">{hint}</p>
         )}
       </div>
     </div>
@@ -97,7 +97,7 @@ function SelectChip({ active, onClick, children }) {
       onClick={onClick}
       aria-pressed={active}
       className={`
-        rounded-full border px-4 py-2 text-sm transition
+        rounded-full border px-3 py-1.5 text-xs transition
         ${
           active
             ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100"
@@ -1011,17 +1011,17 @@ export default function MovieDetails() {
       <section
         className="
           mx-auto
-          max-w-[1100px]
+          max-w-[1050px]
           px-5
-          pt-6
-          pb-6
+          pt-4
+          pb-4
           sm:px-8
-          sm:pt-8
-          sm:pb-8
+          sm:pt-6
+          sm:pb-6
         "
       >
 
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3 sm:mb-4">
           <div>
             <p
               className="
@@ -1054,7 +1054,7 @@ export default function MovieDetails() {
         {archived ? (
           <ArchivedNotice />
         ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
 
           {/* CITY */}
 
@@ -1108,7 +1108,7 @@ export default function MovieDetails() {
                   No theatres in this city have bookable shows right now.
                 </EmptyState>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   {theatres.map((theatre) => {
                     const active =
                       String(selectedTheatreId) === String(theatre.id);
@@ -1120,7 +1120,7 @@ export default function MovieDetails() {
                         onClick={() => setSelectedTheatreId(theatre.id)}
                         aria-pressed={active}
                         className={`
-                          rounded-2xl border p-3 text-left transition
+                          rounded-2xl border p-2.5 text-left transition
                           ${
                             active
                               ? "border-cyan-300/40 bg-cyan-300/[.07]"
@@ -1202,7 +1202,7 @@ export default function MovieDetails() {
                   date or theatre.
                 </EmptyState>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {showtimes.map((show) => {
                     const soldOut =
                       Number(show.availableSeats || 0) === 0;
@@ -1214,7 +1214,7 @@ export default function MovieDetails() {
                         disabled={soldOut}
                         onClick={() => navigate(`/show/${show.id}`)}
                         className={`
-                          group rounded-2xl border p-4 text-left transition
+                          group rounded-2xl border p-3 text-left transition
                           ${
                             soldOut
                               ? "cursor-not-allowed border-white/5 bg-white/[.02] text-white/30"
@@ -1249,7 +1249,7 @@ export default function MovieDetails() {
                           </span>
                         </div>
 
-                        <p className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11px] text-white/40">
+                        <p className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 text-[11px] text-white/40">
                           <span>
                             {money(show.ticketPrice)} / ticket
                           </span>
