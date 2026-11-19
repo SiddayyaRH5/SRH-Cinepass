@@ -27,6 +27,10 @@ const POPULAR_SET = new Set(
   POPULAR_CITIES.map((city) => city.toLowerCase())
 );
 
+// Initial limit for the "Other Cities" alphabetical list.
+// Show only the first 20 cities by default; the rest are accessible via "View all".
+const INITIAL_CITY_LIMIT = 20;
+
 /**
  * Merge the curated Indian city catalogue with any cities the backend already
  * knows about. The backend id is preserved whenever a name matches so theatre
@@ -120,6 +124,7 @@ export default function LocationSelector() {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [query, setQuery] = React.useState("");
+  const [expanded, setExpanded] = React.useState(false);
   const [locating, setLocating] = React.useState(false);
   const [locateMessage, setLocateMessage] = React.useState("");
 
@@ -162,12 +167,17 @@ export default function LocationSelector() {
     [cities]
   );
 
+  const otherCities = React.useMemo(
+    () => cities.filter((city) => !POPULAR_SET.has(city.city.toLowerCase())),
+    [cities]
+  );
+
   const otherGroups = React.useMemo(
     () =>
       groupByLetter(
-        cities.filter((city) => !POPULAR_SET.has(city.city.toLowerCase()))
+        expanded ? otherCities : otherCities.slice(0, INITIAL_CITY_LIMIT)
       ),
-    [cities]
+    [otherCities, expanded]
   );
 
   const searchResults = React.useMemo(() => {
@@ -650,6 +660,27 @@ export default function LocationSelector() {
                           {cities.length} cities
                         </span>
                       </div>
+
+                      {cities.length > INITIAL_CITY_LIMIT && (
+                        <button
+                          type="button"
+                          onClick={() => setExpanded((previous) => !previous)}
+                          aria-expanded={expanded}
+                          className="mb-3 rounded-full border border-cyan-400/30 px-3 py-1.5 text-xs text-cyan-200 transition hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                        >
+                          {expanded ? (
+                            <span className="flex items-center gap-1">
+                              <ChevronUp size={12} />
+                              Hide all cities
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <ChevronDown size={12} />
+                              View all cities
+                            </span>
+                          )}
+                        </button>
+                      )}
 
                       <div className="space-y-4">
                         {otherGroups.map(([letter, group]) => (
