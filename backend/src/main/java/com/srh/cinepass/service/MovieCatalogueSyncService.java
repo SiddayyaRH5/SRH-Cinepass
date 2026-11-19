@@ -115,7 +115,7 @@ public class MovieCatalogueSyncService {
             return new SyncReport(0, 0, 0, 0, 0, errors);
         }
 
-        TmdbService.DiscoveryResult discovery = tmdbService.fetchDiscoveryCandidates();
+        TmdbService.DiscoveryResult discovery = tmdbService.fetchDiscoveryCandidates(true);
 
         errors.addAll(discovery.errors());
 
@@ -219,6 +219,15 @@ public class MovieCatalogueSyncService {
         if (indiaDate == null) {
             log.info(
                     "Skipped TMDB movie {}: no Indian theatrical release date",
+                    candidate.tmdbId());
+            return Outcome.SKIPPED;
+        }
+
+        // Reject movies without a valid poster. A movie without a poster is
+        // not a valid catalogue entry.
+        if (movieDetails.posterUrl() == null || movieDetails.posterUrl().isBlank()) {
+            log.info(
+                    "Skipped TMDB movie {}: no valid poster path",
                     candidate.tmdbId());
             return Outcome.SKIPPED;
         }

@@ -260,6 +260,17 @@ public class TmdbService {
      * its Indian theatrical release date is confirmed separately.</p>
      */
     public DiscoveryResult fetchDiscoveryCandidates() {
+        return fetchDiscoveryCandidates(false);
+    }
+
+    /**
+     * Fetches discovery candidates, optionally bypassing the cache.
+     *
+     * <p>Manual synchronisation should always fetch fresh data to ensure
+     * newly released movies (such as O.M) are discovered and stale entries
+     * are not served from a cached result.</p>
+     */
+    public DiscoveryResult fetchDiscoveryCandidates(boolean bypassCache) {
 
         List<String> errors = new ArrayList<>();
 
@@ -271,11 +282,15 @@ public class TmdbService {
 
         String cacheKey = region + "|" + language + "|" + discoveryMaxPages;
 
-        DiscoveryResult cached = discoveryCache.getIfPresent(cacheKey);
+        if (!bypassCache) {
+            DiscoveryResult cached = discoveryCache.getIfPresent(cacheKey);
 
-        if (cached != null) {
-            log.debug("TMDB discovery served from cache ({} candidates)", cached.candidates().size());
-            return cached;
+            if (cached != null) {
+                log.debug("TMDB discovery served from cache ({} candidates)", cached.candidates().size());
+                return cached;
+            }
+        } else {
+            discoveryCache.invalidate(cacheKey);
         }
 
         Map<Long, TmdbMovieCandidate> merged = new LinkedHashMap<>();
@@ -620,11 +635,19 @@ public class TmdbService {
             return null;
         }
 
+        String posterPath = text(node, "poster_path");
+
+        // Reject candidates without a valid poster path. A movie without a
+        // poster is not a valid catalogue entry.
+        if (posterPath.isBlank()) {
+            return null;
+        }
+
         return new TmdbMovieCandidate(
                 id,
                 title,
                 text(node, "overview"),
-                text(node, "poster_path"),
+                posterPath,
                 text(node, "backdrop_path"),
                 text(node, "original_language"),
                 node.path("vote_average").asDouble(0.0));

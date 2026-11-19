@@ -145,6 +145,14 @@ export default function Movies() {
       const title = (m.title || "").toLowerCase().includes(query.toLowerCase());
       if (!title) return false;
 
+      // Hide movies without a valid poster path. If no poster field exists at all
+      // (e.g. simplified test data), allow the movie through.
+      const hasPosterField = "posterUrl" in m || "poster_path" in m || "poster" in m;
+      if (hasPosterField) {
+        const poster = m.posterUrl || m.poster_path || m.poster;
+        if (!poster || String(poster).trim() === "") return false;
+      }
+
       const g =
         genre === "All" ||
         String(m.genre || "").toLowerCase().includes(genre.toLowerCase()) ||

@@ -158,6 +158,19 @@ public class MovieLifecycleService {
                     continue;
                 }
 
+                // Archive movies without a valid poster path. A movie without a
+                // poster is not a valid catalogue entry. This check runs after
+                // the hold check so movies with active dependencies (future
+                // shows, open bookings, unresolved payments, etc.) are never
+                // archived prematurely.
+                String posterUrl = movie.getPosterUrl();
+                if (posterUrl == null || posterUrl.isBlank()) {
+                    writer.archive(movie.getId(), now);
+                    archived++;
+                    log.info("Archived movie {} ({}) - missing poster", movie.getId(), movie.getTitle());
+                    continue;
+                }
+
                 writer.archive(movie.getId(), now);
 
                 archived++;

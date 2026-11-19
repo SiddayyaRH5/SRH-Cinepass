@@ -5,12 +5,16 @@ import { formatDate } from "../lib/formatters";
 
 export default function MovieCard({ movie, index = 0 }) {
   const poster = movie.posterUrl || movie.poster_path;
+  const [imageFailed, setImageFailed] = React.useState(false);
   const rating = Number(
     movie.rating ?? movie.vote_average ?? 0
   );
 
   const title = movie.title || "Untitled";
   const id = movie.id ?? movie._id;
+
+  // Hide the card entirely if the poster image fails to load.
+  if (imageFailed) return null;
 
   const genre =
     movie.genre ||
@@ -73,6 +77,7 @@ export default function MovieCard({ movie, index = 0 }) {
               decoding="async"
               width="300"
               height="450"
+              onError={() => setImageFailed(true)}
               className="
                 h-full
                 w-full

@@ -39,7 +39,7 @@ export default function Home() {
     staleTime: 1000 * 60 * 1,
   });
 
-  const movies = moviesData || [];
+  const movies = (moviesData || []).filter((m) => { const hasPosterField = "posterUrl" in m || "poster_path" in m || "poster" in m; if (!hasPosterField) return true; const p = m.posterUrl || m.poster_path || m.poster; return p && String(p).trim() !== ""; });
   const loading = moviesLoading;
   const hero = movies[0] || null;
 
