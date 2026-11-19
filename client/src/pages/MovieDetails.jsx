@@ -765,8 +765,8 @@ export default function MovieDetails() {
       ===================================================== */}
 
       {movie.trailerKey && (
-        <section className="mx-auto max-w-[1200px] px-5 pt-2 pb-6 sm:px-8">
-          <div className="mb-4">
+        <section className="mx-auto max-w-[1000px] px-5 pt-2 pb-4 sm:px-8">
+          <div className="mb-3">
             <p className="text-[11px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
               Trailer
             </p>
@@ -833,13 +833,13 @@ export default function MovieDetails() {
         if (!Array.isArray(cast) || cast.length === 0) return null;
         const visible = showAllCast ? cast : cast.slice(0, 8);
         return (
-          <section className="mx-auto max-w-[1200px] px-5 pt-2 pb-8 sm:px-8">
-            <div className="mb-4 flex items-end justify-between gap-3">
+          <section className="mx-auto max-w-[1200px] px-5 pt-2 pb-6 sm:px-8">
+            <div className="mb-3 flex items-end justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[.25em] text-cyan-300 sm:text-xs">
                   Cast
                 </p>
-                <h2 className="mt-1 text-2xl font-semibold">
+                <h2 className="mt-1 text-xl font-semibold sm:text-2xl">
                   Top billed cast
                 </h2>
               </div>
@@ -854,7 +854,7 @@ export default function MovieDetails() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
               {visible.map((member, index) => {
                 const photo = member.profilePath
                   ? `https://image.tmdb.org/t/p/w185${member.profilePath}`
@@ -864,13 +864,13 @@ export default function MovieDetails() {
                     key={`${member.name}-${index}`}
                     className="overflow-hidden rounded-xl border border-white/10 bg-white/[.03]"
                   >
-                    <div className="aspect-[2/3] w-full overflow-hidden bg-white/[.04]">
+                    <div className="h-[180px] w-full overflow-hidden bg-white/[.04] sm:h-[200px]">
                       {photo ? (
                         <img
                           src={photo}
                           alt={member.name}
                           loading="lazy"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover object-top"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";
                           }}
@@ -881,7 +881,7 @@ export default function MovieDetails() {
                         </div>
                       )}
                     </div>
-                    <div className="p-2.5">
+                    <div className="p-2">
                       <p className="truncate text-xs font-semibold text-white/85">
                         {member.name}
                       </p>
@@ -1013,17 +1013,17 @@ export default function MovieDetails() {
       <section
         className="
           mx-auto
-          max-w-[1200px]
+          max-w-[1100px]
           px-5
-          pt-9
-          pb-10
+          pt-6
+          pb-6
           sm:px-8
-          sm:pt-12
-          sm:pb-14
+          sm:pt-8
+          sm:pb-8
         "
       >
 
-        <div className="mb-7 flex flex-wrap items-end justify-between gap-3 sm:mb-9">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
           <div>
             <p
               className="
@@ -1056,7 +1056,7 @@ export default function MovieDetails() {
         {archived ? (
           <ArchivedNotice />
         ) : (
-        <div className="space-y-7">
+        <div className="space-y-4">
 
           {/* CITY */}
 
@@ -1122,7 +1122,7 @@ export default function MovieDetails() {
                         onClick={() => setSelectedTheatreId(theatre.id)}
                         aria-pressed={active}
                         className={`
-                          rounded-2xl border p-4 text-left transition
+                          rounded-2xl border p-3 text-left transition
                           ${
                             active
                               ? "border-cyan-300/40 bg-cyan-300/[.07]"

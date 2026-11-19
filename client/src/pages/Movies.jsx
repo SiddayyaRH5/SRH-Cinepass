@@ -3,6 +3,7 @@ import { AlertCircle, ChevronDown, Filter, RefreshCw, Search, SlidersHorizontal,
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { getMovies } from "../lib/api";
+import { queryKeys } from "../lib/queryKeys";
 import MovieCard from "../components/MovieCard";
 import Loading from "../components/Loading";
 
@@ -76,12 +77,12 @@ export default function Movies() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   const { data: moviesData, isLoading, isError, error: queryError, refetch } = useQuery({
-    queryKey: ["movies"],
+    queryKey: queryKeys.movies.all(),
     queryFn: async () => {
       const data = await getMovies();
       return Array.isArray(data) ? data : [];
     },
-    staleTime: 1000 * 60 * 3,
+    staleTime: 1000 * 60 * 5,
   });
 
   const movies = React.useMemo(() => moviesData || [], [moviesData]);
@@ -260,21 +261,21 @@ export default function Movies() {
   );
 
   return (
-    <main className="min-h-screen px-5 pb-20 pt-32 sm:px-8 lg:px-12">
+    <main className="min-h-screen px-5 pb-12 pt-24 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1440px]">
         <div className="animate-cine-rise">
           <p className="text-xs font-semibold uppercase tracking-[.25em] text-cyan-300">
             Discover
           </p>
-          <h1 className="mt-2 text-4xl font-semibold sm:text-5xl">Movies</h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-white/40">
+          <h1 className="mt-1 text-4xl font-semibold sm:text-5xl">Movies</h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-white/40">
             Find your next favourite story and book the seats that feel just
             right.
           </p>
         </div>
 
         {/* Search bar */}
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search
               size={18}
@@ -382,7 +383,7 @@ export default function Movies() {
         {loading ? (
           <Loading label="Loading movies..." />
         ) : error ? (
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-400/25 bg-red-400/[.07] px-4 py-3 text-sm text-red-200">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-400/25 bg-red-400/[.07] px-4 py-3 text-sm text-red-200">
             <span className="flex items-center gap-2">
               <AlertCircle size={15} className="shrink-0" />
               {error}
@@ -398,7 +399,7 @@ export default function Movies() {
           </div>
         ) : (
           <>
-            <div className="mb-5 mt-8 text-sm text-white/35">
+            <div className="mb-4 mt-5 text-sm text-white/35">
               {filtered.length} movie{filtered.length !== 1 ? "s" : ""} found
             </div>
             {filtered.length > 0 ? (

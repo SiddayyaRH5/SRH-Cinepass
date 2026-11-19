@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 
 import { getMovies, getShows } from "../lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "../lib/queryKeys";
 import MovieCard from "../components/MovieCard";
 import Loading from "../components/Loading";
 import { useLocationContext } from "../lib/LocationContext";
@@ -19,30 +21,27 @@ import { useLocationContext } from "../lib/LocationContext";
 export default function Home() {
   const { selectedLocation } = useLocationContext();
 
-  const [movies, setMovies] = React.useState([]);
-  const [, setShows] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [hero, setHero] = React.useState(null);
+  const { data: moviesData, isLoading: moviesLoading } = useQuery({
+    queryKey: queryKeys.movies.all(),
+    queryFn: async () => {
+      const data = await getMovies();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
-  React.useEffect(() => {
-    Promise.allSettled([getMovies(), getShows()])
-      .then(([m, s]) => {
-        const movieList =
-          m.status === "fulfilled" && Array.isArray(m.value)
-            ? m.value
-            : [];
+  useQuery({
+    queryKey: queryKeys.shows.all(),
+    queryFn: async () => {
+      const data = await getShows();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 1000 * 60 * 1,
+  });
 
-        const showList =
-          s.status === "fulfilled" && Array.isArray(s.value)
-            ? s.value
-            : [];
-
-        setMovies(movieList);
-        setShows(showList);
-        setHero(movieList[0] || null);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const movies = moviesData || [];
+  const loading = moviesLoading;
+  const hero = movies[0] || null;
 
   if (loading) {
     return (
@@ -329,15 +328,15 @@ export default function Home() {
 
             <div
               className="
-                mt-8
+                mt-4
                 flex
                 flex-wrap
                 gap-x-6
-                gap-y-3
-                pb-6
+                gap-y-2
+                pb-4
                 text-xs
                 text-white/45
-                sm:pb-8
+                sm:pb-6
               "
             >
 
@@ -409,11 +408,11 @@ export default function Home() {
 
         <div
           className="
-            mb-8
+            mb-4
             flex
             items-end
             justify-between
-            gap-5
+            gap-4
           "
         >
 
