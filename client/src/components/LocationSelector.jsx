@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   Check,
   ChevronDown,
+  ChevronUp,
   Loader2,
   LocateFixed,
   MapPin,
@@ -666,6 +667,7 @@ export default function LocationSelector() {
                           type="button"
                           onClick={() => setExpanded((previous) => !previous)}
                           aria-expanded={expanded}
+                          aria-label={expanded ? "Hide all cities" : "View all cities"}
                           className="mb-3 rounded-full border border-cyan-400/30 px-3 py-1.5 text-xs text-cyan-200 transition hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
                         >
                           {expanded ? (
@@ -682,7 +684,7 @@ export default function LocationSelector() {
                         </button>
                       )}
 
-                      <div className="space-y-4">
+                      <div className="max-h-[45vh] space-y-4 overflow-y-auto pr-1">
                         {otherGroups.map(([letter, group]) => (
                           <div
                             key={letter}

@@ -282,4 +282,126 @@ describe("LocationSelector city selection", () => {
 
     expect(screen.getByTestId("selection")).toHaveTextContent("none");
   });
+
+  it("shows initial 20 cities in Other Cities section", async () => {
+    renderSelector();
+    const dialog = await openDialog();
+
+    // View all cities button should be present when there are more than 20 cities
+    expect(
+      within(dialog).getByRole("button", { name: /view all cities/i })
+    ).toBeInTheDocument();
+  });
+
+  it("expands to show all cities when View all cities is clicked", async () => {
+    renderSelector();
+    const dialog = await openDialog();
+
+    const toggleButton = within(dialog).getByRole("button", {
+      name: /view all cities/i,
+    });
+
+    await userEvent.click(toggleButton);
+
+    // After expansion, Hide all cities button should be present
+    expect(
+      within(dialog).getByRole("button", { name: /hide all cities/i })
+    ).toBeInTheDocument();
+
+    // Dialog should still be open
+    expect(screen.getByRole("dialog", { name: /select your city/i })).toBeInTheDocument();
+  });
+
+  it("collapses back to 20 cities when Hide all cities is clicked", async () => {
+    renderSelector();
+    const dialog = await openDialog();
+
+    // Expand first
+    const viewButton = within(dialog).getByRole("button", {
+      name: /view all cities/i,
+    });
+    await userEvent.click(viewButton);
+
+    // Then collapse
+    const hideButton = within(dialog).getByRole("button", {
+      name: /hide all cities/i,
+    });
+    await userEvent.click(hideButton);
+
+    // Back to View all cities
+    expect(
+      within(dialog).getByRole("button", { name: /view all cities/i })
+    ).toBeInTheDocument();
+
+    // Dialog should still be open
+    expect(screen.getByRole("dialog", { name: /select your city/i })).toBeInTheDocument();
+  });
+
+  it("shows search results while expanded", async () => {
+    renderSelector();
+    const dialog = await openDialog();
+
+    // Expand first
+    const viewButton = within(dialog).getByRole("button", {
+      name: /view all cities/i,
+    });
+    await userEvent.click(viewButton);
+
+    // Search while expanded
+    const input = within(dialog).getByRole("searchbox", {
+      name: /search cities/i,
+    });
+    await userEvent.type(input, "kol");
+
+    expect(
+      within(dialog).getByRole("button", { name: /^Kolkata/ })
+    ).toBeInTheDocument();
+  });
+
+  it("clearing search preserves expansion state", async () => {
+    renderSelector();
+    const dialog = await openDialog();
+
+    // Expand first
+    const viewButton = within(dialog).getByRole("button", {
+      name: /view all cities/i,
+    });
+    await userEvent.click(viewButton);
+
+    // Search
+    const input = within(dialog).getByRole("searchbox", {
+      name: /search cities/i,
+    });
+    await userEvent.type(input, "zzzzzz");
+
+    // Clear search
+    await userEvent.click(
+      within(dialog).getByRole("button", {
+        name: /clear search and show all cities/i,
+      })
+    );
+
+    // Expansion state should be preserved (Hide all cities should be present)
+    expect(
+      within(dialog).getByRole("button", { name: /hide all cities/i })
+    ).toBeInTheDocument();
+  });
+
+  it("modal remains open throughout expansion and collapse", async () => {
+    renderSelector();
+    const dialog = await openDialog();
+
+    // Expand
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: /view all cities/i })
+    );
+    expect(screen.getByRole("dialog", { name: /select your city/i })).toBeInTheDocument();
+
+    // Collapse
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: /hide all cities/i })
+    );
+    expect(screen.getByRole("dialog", { name: /select your city/i })).toBeInTheDocument();
+  });
+
 });
